@@ -104,8 +104,6 @@
   .cmt:hover { border-color: #d97757; }
   .cmt .q { color: #9b9a92; border-left: 2px solid #e3a886; padding-left: 6px; margin-bottom: 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .cmt .c { color: #1a1915; white-space: pre-wrap; }
-  .cmt .del { float: right; border: none; background: none; color: #b6b4ab; cursor: pointer; font-size: 12px; padding: 0 2px; }
-  .cmt .del:hover { color: #a32d2d; }
   .cmt-tools { display: flex; align-items: center; justify-content: flex-end; gap: 6px; min-height: 30px; padding: 2px 12px 4px; margin-bottom: 2px; }
   .cmt-tools button { width: 28px; height: 28px; display: inline-grid; place-items: center; border: 1px solid transparent; background: transparent; border-radius: 6px; cursor: pointer; color: #8e8d86; padding: 0; }
   .cmt-tools button svg { width: 15px; height: 15px; }
@@ -576,11 +574,13 @@
       for (const [name, id] of Object.entries(PANELS)) {
         document.getElementById(id).style.display = tab.dataset.tab === name ? "" : "none";
       }
+      if (tab.dataset.tab === "comments") renderComments();
     });
   }
 
   let recogito = null;
   let persistFn = null;
+  let annotationCache = [];
   let boxAnnotations = [];  // mermaid 框选评论（独立于 Recogito 文本批注，合并持久化）
   const isBoxAnno = (a) => ((a?.target?.selector) ?? []).some((s) => s?.type === "MermaidBoxSelector");
   const boxSelOf = (a) => ((a?.target?.selector) ?? []).find((s) => s?.type === "MermaidBoxSelector") ?? {};
@@ -623,14 +623,17 @@
 
   function collectCommentItems() {
     const textItems = recogito ? recogito.getAnnotations() : [];
-    return [
-      ...textItems.map((a) => ({ a, box: false })),
-      ...boxAnnotations.map((a) => ({ a, box: true })),
-    ].sort((a, b) => commentDocTop(a) - commentDocTop(b));
+    const byId = new Map();
+    for (const a of annotationCache) byId.set(a.id, a);
+    for (const a of textItems) byId.set(a.id, a);
+    for (const a of boxAnnotations) byId.set(a.id, a);
+    return itemsFromAnnotations([...byId.values()]);
   }
 
   function itemsFromAnnotations(annotations) {
-    return (annotations ?? []).map((a) => ({ a, box: isBoxAnno(a) })).sort((a, b) => commentDocTop(a) - commentDocTop(b));
+    return (annotations ?? [])
+      .map((a, index) => ({ a, box: isBoxAnno(a), index }))
+      .sort((a, b) => (commentDocTop(a) - commentDocTop(b)) || (a.index - b.index));
   }
 
   async function currentCommentItemsForCopy() {
@@ -727,23 +730,13 @@
     listEl.innerHTML = items.map((it, i) => {
       const comment = bodyOf(it.a);
       const q = it.box ? `▢ 图框：${boxSelOf(it.a).extractedText || "（无文字）"}` : quoteOf(it.a);
-      return `<div class="cmt${it.box ? " cmt-box" : ""}" data-i="${i}"><button class="del" title="删除">✕</button><div class="q">${q}</div><div class="c">${comment}</div></div>`;
+      return `<div class="cmt${it.box ? " cmt-box" : ""}" data-i="${i}"><div class="q">${q}</div><div class="c">${comment}</div></div>`;
     }).join("");
     listEl.onclick = (e) => {
       const card = e.target.closest(".cmt");
       if (!card) return;
       const it = items[Number(card.dataset.i)];
       if (!it) return;
-      if (e.target.closest(".del")) {
-        if (it.box) {
-          boxAnnotations = boxAnnotations.filter((b) => b.id !== it.a.id);
-          persistFn?.();
-          renderComments();
-        } else {
-          recogito.removeAnnotation(it.a);  // 触发 deleteAnnotation → persist + renderComments
-        }
-        return;
-      }
       if (it.box) {
         const di = boxSelOf(it.a).diagramIndex ?? 0;
         document.querySelector(`.mermaid[data-diagram-index="${di}"]`)?.scrollIntoView({ block: "center", behavior: "smooth" });
@@ -1201,6 +1194,7 @@
       const saved = await (await fetch(annoUrl)).json();
       annoBase = saved.updatedAt ?? null;
       const allLoaded = saved.annotations ?? [];
+      annotationCache = allLoaded;
       boxAnnotations = allLoaded.filter(isBoxAnno);
       try {
         await r.setAnnotations(allLoaded.filter((a) => !isBoxAnno(a)));
@@ -1215,6 +1209,7 @@
     async function applyServerState(state) {
       annoBase = state.updatedAt ?? null;
       const allState = state.annotations ?? [];
+      annotationCache = allState;
       boxAnnotations = allState.filter(isBoxAnno);
       try {
         await r.setAnnotations(allState.filter((a) => !isBoxAnno(a)));
@@ -1232,6 +1227,7 @@
         body: JSON.stringify({ annotations, baseUpdatedAt: annoBase }),
       });
       if (res.ok) {
+        annotationCache = annotations;
         annoBase = (await res.json()).updatedAt ?? null;
         return;
       }
