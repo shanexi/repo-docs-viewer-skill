@@ -17,7 +17,7 @@ The viewer serves markdown files from a docs directory with a sidebar tree, brow
 2. If `tools/docs-viewer/server.mjs` and `tools/docs-viewer/viewer.html` are missing, install the bundled viewer:
 
 ```bash
-/Users/shane/.codex/skills/repo-docs-viewer/scripts/install_docs_viewer.sh <repo-root>
+scripts/install_docs_viewer.sh <repo-root>
 ```
 
 3. If the repo already has a viewer, do not overwrite it unless the user asks. Run validation instead.
@@ -25,7 +25,7 @@ The viewer serves markdown files from a docs directory with a sidebar tree, brow
 
 ```bash
 DOCS_DIR=<repo-root>/docs PORT=4642 node <repo-root>/tools/docs-viewer/server.mjs
-/Users/shane/.codex/skills/repo-docs-viewer/scripts/validate_docs_viewer.sh <repo-root> 4642 <repo-root>/docs
+scripts/validate_docs_viewer.sh <repo-root> 4642 <repo-root>/docs
 ```
 
 5. Share the local URL with the user. Use `/d/<relative-path>.md` for a specific document.
@@ -35,7 +35,7 @@ DOCS_DIR=<repo-root>/docs PORT=4642 node <repo-root>/tools/docs-viewer/server.mj
 Run the installer from anywhere:
 
 ```bash
-/Users/shane/.codex/skills/repo-docs-viewer/scripts/install_docs_viewer.sh /path/to/repo
+scripts/install_docs_viewer.sh /path/to/repo
 ```
 
 The installer copies:
@@ -49,7 +49,7 @@ Default destination: `<repo-root>/tools/docs-viewer/`.
 Use `--force` only when the user explicitly wants to replace the existing viewer files:
 
 ```bash
-/Users/shane/.codex/skills/repo-docs-viewer/scripts/install_docs_viewer.sh --force /path/to/repo
+scripts/install_docs_viewer.sh --force /path/to/repo
 ```
 
 ## Validation
@@ -57,7 +57,7 @@ Use `--force` only when the user explicitly wants to replace the existing viewer
 Prefer the validation script after installation or before recommending adoption:
 
 ```bash
-/Users/shane/.codex/skills/repo-docs-viewer/scripts/validate_docs_viewer.sh /path/to/repo 4642 /path/to/repo/docs
+scripts/validate_docs_viewer.sh /path/to/repo 4642 /path/to/repo/docs
 ```
 
 The script checks:
