@@ -1,6 +1,6 @@
 ---
 name: repo-docs-viewer
-description: Install, validate, and use a portable zero-build markdown documentation viewer for any repository. Use when Codex needs to turn a repo's markdown docs into a local browsable site, add the docs-viewer asset to another repo, review or annotate docs with embedded markdown comments, validate docs-viewer behavior, or create date-stamped discussion docs under docs/.
+description: Install, validate, preview, and use a portable zero-build markdown documentation viewer for any repository. Use when Codex needs to turn a repo's markdown docs into a local browsable site, open docs in a Codex Desktop or Claude Code preview/browser surface, add the docs-viewer asset to another repo, review or annotate docs with embedded markdown comments, validate docs-viewer behavior, or create date-stamped discussion docs under docs/.
 ---
 
 # Repo Docs Viewer
@@ -28,7 +28,7 @@ DOCS_DIR=<repo-root>/docs PORT=4642 node <repo-root>/tools/docs-viewer/server.mj
 scripts/validate_docs_viewer.sh <repo-root> 4642 <repo-root>/docs
 ```
 
-5. Share the local URL with the user. Use `/d/<relative-path>.md` for a specific document.
+5. In Codex Desktop, Claude Code Desktop, or any agent environment with a preview/browser surface, open the viewer URL directly and confirm the page renders. If no preview surface is available, share the local URL with the user. Use `/d/<relative-path>.md` for a specific document.
 
 ## Installing Into Another Repo
 
@@ -69,6 +69,15 @@ The script checks:
 - encoded path traversal returns non-200
 
 If the server fails under a background launch, run it in the foreground to capture startup errors before debugging the browser.
+
+## Desktop Preview
+
+When a desktop agent can open local URLs, treat preview as part of completion:
+
+- Open `http://localhost:<port>/` after the server starts.
+- Open at least one markdown document at `/d/<relative-path>.md`, especially the document the user asked about.
+- Wait briefly for browser-side markdown, mermaid, and annotation scripts to settle before deciding the page is blank or broken.
+- If preview tooling is unavailable, state that limitation and give the exact URL instead.
 
 ## Discussion Docs
 

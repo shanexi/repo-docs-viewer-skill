@@ -14,6 +14,7 @@ npx skills add shanexi/repo-docs-viewer-skill --skill repo-docs-viewer
 - A reusable workflow for adding a local markdown docs viewer to a repo.
 - Bundled viewer assets that copy into `tools/docs-viewer/`.
 - Validation scripts for the viewer server, docs tree API, raw markdown route, and path traversal guard.
+- Guidance to open the viewer in Codex Desktop, Claude Code Desktop, or another local preview/browser surface when available.
 - Guidance for creating date-stamped discussion docs and preserving embedded markdown annotations.
 
 ## Direct Script Usage
