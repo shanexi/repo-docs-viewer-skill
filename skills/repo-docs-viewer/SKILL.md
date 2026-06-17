@@ -9,26 +9,35 @@ description: Install, validate, preview, and use a portable zero-build markdown 
 
 Use this skill to add or operate a local markdown docs viewer in any repository. The viewer asset is bundled in `assets/docs-viewer/` and is designed to be copied into a repo at `tools/docs-viewer/`.
 
-The viewer serves markdown files from a docs directory with a sidebar tree, browser-rendered markdown and mermaid, text annotations, mermaid box comments, outline navigation, in-page search, and embedded annotation storage in the markdown file.
+The viewer serves markdown files from a docs directory with a sidebar tree, browser-rendered markdown, Obsidian image embeds, Obsidian `==highlights==`, mermaid, text annotations, mermaid box comments, outline navigation, in-page search, and embedded annotation storage in the markdown file.
 
 ## Workflow
 
 1. Confirm the target repo root. If the user does not specify one, use the current working directory only if it is clearly the intended repo.
-2. If `tools/docs-viewer/server.mjs` and `tools/docs-viewer/viewer.html` are missing, install the bundled viewer:
+2. Choose the operating mode:
+   - For preview-only use, especially in an Obsidian vault or a non-git directory, run the bundled viewer directly and do not copy `tools/docs-viewer/`.
+   - For repo adoption where the viewer should be committed and reused by the project, install the bundled viewer into `tools/docs-viewer/`.
+3. Preview-only command:
+
+```bash
+DOCS_DIR=<docs-dir> ASSETS_DIR=<asset-root> PORT=4642 node assets/docs-viewer/server.mjs
+```
+
+4. If `tools/docs-viewer/server.mjs` and `tools/docs-viewer/viewer.html` are missing and repo adoption is intended, install the bundled viewer:
 
 ```bash
 scripts/install_docs_viewer.sh <repo-root>
 ```
 
-3. If the repo already has a viewer, do not overwrite it unless the user asks. Run validation instead.
-4. Start or validate the viewer with an explicit docs directory when the repo does not use `docs/`:
+5. If the repo already has a viewer, do not overwrite it unless the user asks. Run validation instead.
+6. Start or validate the viewer with an explicit docs directory when the repo does not use `docs/`:
 
 ```bash
-DOCS_DIR=<repo-root>/docs PORT=4642 node <repo-root>/tools/docs-viewer/server.mjs
-scripts/validate_docs_viewer.sh <repo-root> 4642 <repo-root>/docs
+DOCS_DIR=<repo-root>/docs ASSETS_DIR=<repo-root> PORT=4642 node <repo-root>/tools/docs-viewer/server.mjs
+scripts/validate_docs_viewer.sh <repo-root> 4642 <repo-root>/docs <repo-root>
 ```
 
-5. In Codex Desktop, Claude Code Desktop, or any agent environment with a preview/browser surface, open the viewer URL directly and confirm the page renders. If no preview surface is available, share the local URL with the user. Use `/d/<relative-path>.md` for a specific document.
+7. In Codex Desktop, Claude Code Desktop, or any agent environment with a preview/browser surface, open the viewer URL directly and confirm the page renders. If no preview surface is available, share the local URL with the user. Use `/d/<relative-path>.md` for a specific document.
 
 ## Installing Into Another Repo
 
@@ -57,7 +66,7 @@ scripts/install_docs_viewer.sh --force /path/to/repo
 Prefer the validation script after installation or before recommending adoption:
 
 ```bash
-scripts/validate_docs_viewer.sh /path/to/repo 4642 /path/to/repo/docs
+scripts/validate_docs_viewer.sh /path/to/repo 4642 /path/to/repo/docs /path/to/repo
 ```
 
 The script checks:
@@ -67,6 +76,8 @@ The script checks:
 - `GET /api/tree`
 - `GET /raw/<sample-md>`
 - encoded path traversal returns non-200
+
+If `tools/docs-viewer/` is not installed, the script falls back to this skill's bundled `assets/docs-viewer/server.mjs`.
 
 If the server fails under a background launch, run it in the foreground to capture startup errors before debugging the browser.
 
@@ -108,5 +119,6 @@ When resolving comments, read and modify the markdown file directly if needed. A
 
 - Do not assume any specific repository; accept any markdown docs tree.
 - Use `DOCS_DIR` for repos whose docs live outside `docs/`.
+- Use `ASSETS_DIR` when markdown uses Obsidian-style image embeds and attachments live outside `DOCS_DIR`, such as a vault root containing images for a subfolder.
 - Use a different `PORT` when the default is busy.
 - The viewer has no npm install step; browser dependencies load from CDN.

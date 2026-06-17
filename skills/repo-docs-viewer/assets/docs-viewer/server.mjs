@@ -6,12 +6,26 @@
 //        DOCS_DIR=docs/some-topic node tools/docs-viewer/server.mjs
 import { createServer } from "node:http";
 import { readFileSync, readdirSync, writeFileSync, existsSync, statSync } from "node:fs";
-import { join, dirname, resolve, sep } from "node:path";
+import { basename, extname, join, dirname, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DOCS_DIR = resolve(process.env.DOCS_DIR ?? join(__dirname, "..", "..", "docs"));
+const ASSETS_DIR = resolve(process.env.ASSETS_DIR ?? DOCS_DIR);
 const PORT = Number(process.env.PORT ?? 4642);
+const IMAGE_MIME = new Map([
+  [".avif", "image/avif"],
+  [".gif", "image/gif"],
+  [".jpg", "image/jpeg"],
+  [".jpeg", "image/jpeg"],
+  [".png", "image/png"],
+  [".svg", "image/svg+xml"],
+  [".webp", "image/webp"],
+]);
+
+function isInside(root, full) {
+  return full === root || full.startsWith(root + sep);
+}
 
 function safeDocName(raw) {
   let name;
@@ -22,8 +36,69 @@ function safeDocName(raw) {
   }
   if (!name.endsWith(".md") || name.includes("..") || name.startsWith("/") || name.includes("\0")) return null;
   const full = resolve(DOCS_DIR, name);
-  if (!full.startsWith(DOCS_DIR + sep)) return null;
+  if (!isInside(DOCS_DIR, full)) return null;
   return existsSync(full) && statSync(full).isFile() ? name : null;
+}
+
+function isSkippableDir(entryName, relPath) {
+  return entryName.startsWith(".") || entryName === "node_modules" || relPath === "tools/docs-viewer";
+}
+
+function decodePath(raw) {
+  try {
+    return decodeURIComponent(raw ?? "");
+  } catch {
+    return null;
+  }
+}
+
+function isImagePath(name) {
+  return IMAGE_MIME.has(extname(name).toLowerCase());
+}
+
+function assetCandidate(full) {
+  if (!isInside(ASSETS_DIR, full) && !isInside(DOCS_DIR, full)) return null;
+  if (!existsSync(full) || !statSync(full).isFile()) return null;
+  return isImagePath(full) ? full : null;
+}
+
+function walkAssets(dir = ASSETS_DIR) {
+  const out = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const relPath = dir === ASSETS_DIR ? entry.name : `${dir.slice(ASSETS_DIR.length + 1)}${sep}${entry.name}`;
+    if (entry.isDirectory()) {
+      if (!isSkippableDir(entry.name, relPath.split(sep).join("/"))) out.push(...walkAssets(join(dir, entry.name)));
+    } else if (isImagePath(entry.name)) {
+      out.push(join(dir, entry.name));
+    }
+  }
+  return out;
+}
+
+function resolveAssetPath(raw, fromRaw) {
+  const name = decodePath(raw);
+  if (!name || name.startsWith("/") || name.includes("\0") || !isImagePath(name)) return null;
+
+  const candidates = [];
+  const from = decodePath(fromRaw);
+  if (from && from.endsWith(".md") && !from.includes("\0") && !from.startsWith("/")) {
+    const docFull = resolve(DOCS_DIR, from);
+    if (isInside(DOCS_DIR, docFull)) candidates.push(resolve(dirname(docFull), name));
+  }
+  candidates.push(resolve(ASSETS_DIR, name));
+
+  for (const full of candidates) {
+    const found = assetCandidate(full);
+    if (found) return found;
+  }
+
+  if (!name.includes("/")) {
+    const wanted = basename(name);
+    return walkAssets()
+      .filter((full) => basename(full) === wanted)
+      .sort()[0] ?? null;
+  }
+  return null;
 }
 
 const ANNO_BLOCK_RE = /\n?<!-- docs-viewer:annotations\n([\s\S]*?)\n-->\s*$/;
@@ -57,8 +132,8 @@ function writeAnnotations(name, annotations) {
 function walkDocs(dir = DOCS_DIR, rel = "") {
   const out = [];
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
-    if (entry.name.startsWith(".") || entry.name === "node_modules") continue;
     const relPath = rel ? `${rel}/${entry.name}` : entry.name;
+    if (entry.isDirectory() && isSkippableDir(entry.name, relPath)) continue;
     if (entry.isDirectory()) {
       out.push(...walkDocs(join(dir, entry.name), relPath));
     } else if (entry.name.endsWith(".md")) {
@@ -108,6 +183,12 @@ const server = createServer((req, res) => {
     const name = safeDocName(path.slice(5));
     return name
       ? send(res, 200, splitDoc(name).body, "text/markdown; charset=utf-8")
+      : send(res, 404, "not found", "text/plain");
+  }
+  if (path.startsWith("/asset/")) {
+    const full = resolveAssetPath(path.slice(7), url.searchParams.get("from"));
+    return full
+      ? send(res, 200, readFileSync(full), IMAGE_MIME.get(extname(full).toLowerCase()) ?? "application/octet-stream")
       : send(res, 404, "not found", "text/plain");
   }
   if (path.startsWith("/api/annotations/")) {

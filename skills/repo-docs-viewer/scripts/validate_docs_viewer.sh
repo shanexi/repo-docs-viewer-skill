@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
   cat <<'USAGE'
-Usage: validate_docs_viewer.sh [repo-root] [port] [docs-dir]
+Usage: validate_docs_viewer.sh [repo-root] [port] [docs-dir] [assets-dir]
 
 Starts the repo docs-viewer on a temporary process and checks core routes.
 
@@ -11,6 +11,7 @@ Arguments:
   repo-root   Repository root. Defaults to the current directory.
   port        Port to bind. Defaults to 4642.
   docs-dir    Markdown docs directory. Defaults to <repo-root>/docs.
+  assets-dir  Image attachment directory. Defaults to docs-dir or $ASSETS_DIR.
 USAGE
 }
 
@@ -22,15 +23,30 @@ fi
 repo_root="${1:-$PWD}"
 port="${2:-4642}"
 docs_dir="${3:-$repo_root/docs}"
-server="$repo_root/tools/docs-viewer/server.mjs"
+assets_dir="${4:-${ASSETS_DIR:-$docs_dir}}"
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+skill_dir="$(cd "$script_dir/.." && pwd)"
+repo_server="$repo_root/tools/docs-viewer/server.mjs"
+bundled_server="$skill_dir/assets/docs-viewer/server.mjs"
+if [[ -f "$repo_server" ]]; then
+  server="$repo_server"
+elif [[ -f "$bundled_server" ]]; then
+  server="$bundled_server"
+else
+  server="$repo_server"
+fi
 base_url="http://127.0.0.1:$port"
 
 if [[ ! -f "$server" ]]; then
-  echo "Missing docs-viewer server: $server" >&2
+  echo "Missing docs-viewer server: $repo_server or $bundled_server" >&2
   exit 1
 fi
 if [[ ! -d "$docs_dir" ]]; then
   echo "Docs directory does not exist: $docs_dir" >&2
+  exit 1
+fi
+if [[ ! -d "$assets_dir" ]]; then
+  echo "Assets directory does not exist: $assets_dir" >&2
   exit 1
 fi
 if ! command -v node >/dev/null 2>&1; then
@@ -53,7 +69,7 @@ sample_rel="${sample_md#"$docs_dir"/}"
 sample_url="$(node -e 'console.log(process.argv[1].split("/").map(encodeURIComponent).join("/"))' "$sample_rel")"
 
 log_file="$(mktemp /tmp/repo-docs-viewer.XXXXXX.log)"
-DOCS_DIR="$docs_dir" PORT="$port" node "$server" >"$log_file" 2>&1 &
+DOCS_DIR="$docs_dir" ASSETS_DIR="$assets_dir" PORT="$port" node "$server" >"$log_file" 2>&1 &
 server_pid=$!
 cleanup() {
   kill "$server_pid" >/dev/null 2>&1 || true
@@ -87,3 +103,4 @@ fi
 echo "docs-viewer validation passed."
 echo "Base URL: $base_url"
 echo "Sample raw markdown: /raw/$sample_url"
+echo "Server: $server"

@@ -46,6 +46,10 @@
   .t-row .star:only-of-type { margin-left: auto; }
   #pins .t-row .name { font-size: 12px; }
   .markdown-body { background: #fff; }
+  .markdown-body mark { background: #fff3a3; border-radius: 3px; padding: 0 .12em; color: inherit; }
+  .markdown-body img { max-width: 100%; height: auto; }
+  .markdown-body img.obsidian-embed { display: block; margin: 10px 0; }
+  .missing-asset { display: inline-block; border: 1px dashed #d9d8d3; border-radius: 6px; padding: 6px 9px; color: #8a5a44; background: #faf6f0; font: 12px/1.4 system-ui; }
   .markdown-body pre.mermaid { background: transparent; text-align: center; }
   .markdown-body pre.mermaid svg { cursor: zoom-in; }
   #dia-overlay { position: fixed; inset: 0; z-index: 100; background: rgba(20,19,17,.82); display: none; --dia-cmt-w: 340px; }
@@ -188,6 +192,99 @@
   const docName = location.pathname.startsWith("/d/")
     ? decodeURIComponent(location.pathname.slice(3))
     : null;
+  const IMAGE_EXT_RE = /\.(avif|gif|jpe?g|png|svg|webp)$/i;
+
+  function encodePath(path) {
+    return path.split("/").map(encodeURIComponent).join("/");
+  }
+
+  function assetUrl(target) {
+    return `/asset/${encodePath(target)}?from=${encodeURIComponent(docName ?? "")}`;
+  }
+
+  function splitObsidianTarget(value) {
+    const parts = value.split("|").map((part) => part.trim());
+    const target = parts.shift() ?? "";
+    return { target, meta: parts.join("|") };
+  }
+
+  function imageProps(meta) {
+    const props = { className: ["obsidian-embed"], loading: "lazy" };
+    if (/^\d+$/.test(meta)) props.width = meta;
+    const size = meta.match(/^(\d+)x(\d+)$/i);
+    if (size) {
+      props.width = size[1];
+      props.height = size[2];
+    }
+    return props;
+  }
+
+  function remarkObsidianSyntax() {
+    return (tree) => {
+      function visit(parent) {
+        if (!parent.children) return;
+        for (let i = 0; i < parent.children.length; i++) {
+          const node = parent.children[i];
+          if (node.type !== "text") {
+            visit(node);
+            continue;
+          }
+          const value = node.value;
+          const re = /!\[\[([^\]\n]+)\]\]|==([^=\n]+?)==/g;
+          let match;
+          let last = 0;
+          const next = [];
+          while ((match = re.exec(value))) {
+            if (match.index > last) next.push({ type: "text", value: value.slice(last, match.index) });
+            if (match[1]) {
+              const { target, meta } = splitObsidianTarget(match[1]);
+              if (IMAGE_EXT_RE.test(target)) {
+                next.push({
+                  type: "image",
+                  url: assetUrl(target),
+                  alt: meta || target,
+                  data: { hProperties: imageProps(meta) },
+                });
+              } else {
+                next.push({ type: "text", value: match[0] });
+              }
+            } else {
+              next.push({
+                type: "emphasis",
+                data: { hName: "mark" },
+                children: [{ type: "text", value: match[2] }],
+              });
+            }
+            last = match.index + match[0].length;
+          }
+          if (!next.length) continue;
+          if (last < value.length) next.push({ type: "text", value: value.slice(last) });
+          parent.children.splice(i, 1, ...next);
+          i += next.length - 1;
+        }
+      }
+      visit(tree);
+    };
+  }
+
+  function normalizeImages(root) {
+    for (const img of root.querySelectorAll("img")) {
+      const src = img.getAttribute("src") ?? "";
+      if (!src || src.startsWith("/asset/") || src.startsWith("#") || /^[a-z][a-z0-9+.-]*:/i.test(src)) continue;
+      const target = src.startsWith("/") ? src.slice(1) : src;
+      img.setAttribute("src", assetUrl(target));
+      img.classList.add("obsidian-embed");
+    }
+    for (const img of root.querySelectorAll("img")) {
+      const label = img.getAttribute("alt") || img.getAttribute("src") || "image";
+      img.addEventListener("error", () => {
+        const missing = document.createElement("span");
+        missing.className = "missing-asset";
+        missing.textContent = `Missing image: ${label}`;
+        img.replaceWith(missing);
+      }, { once: true });
+    }
+  }
 
   const PIN_OPEN_KEY = "docs-viewer:pins-open";
   const pins = new Set(JSON.parse(localStorage.getItem(PIN_KEY) ?? "[]"));
@@ -629,11 +726,13 @@
       await unified()
         .use(remarkParse.default)
         .use(remarkGfm.default)
+        .use(remarkObsidianSyntax)
         .use(remarkRehype.default)
         .use(rehypeStringify.default)
         .process(md),
     );
     contentEl.innerHTML = html;
+    normalizeImages(contentEl);
 
     // —— 大纲（从渲染后的标题生成，点击跳转 + 滚动高亮当前位置）——
     const outlineEl = document.getElementById("outline-list");
