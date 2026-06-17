@@ -106,6 +106,11 @@
   .cmt .c { color: #1a1915; white-space: pre-wrap; }
   .cmt .del { float: right; border: none; background: none; color: #b6b4ab; cursor: pointer; font-size: 12px; padding: 0 2px; }
   .cmt .del:hover { color: #a32d2d; }
+  .cmt-tools { display: flex; align-items: center; gap: 8px; padding: 4px 12px 8px; border-bottom: 1px solid rgba(0,0,0,.05); margin-bottom: 4px; }
+  .cmt-tools button { border: 1px solid #d9d8d3; background: #fff; border-radius: 7px; cursor: pointer; color: #56554e; font: 12px system-ui; padding: 4px 9px; }
+  .cmt-tools button:hover:not(:disabled) { background: #f0eee5; }
+  .cmt-tools button:disabled { cursor: default; color: #b6b4ab; background: #faf9f5; }
+  .cmt-copy-status { color: #9b9a92; font: 12px system-ui; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .cmt-empty { padding: 10px 14px; color: #9b9a92; font: 12px system-ui; }
   .ol-item { padding: 3px 12px; cursor: pointer; font: 12px/1.5 system-ui; color: #57564f; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-left: 2px solid transparent; }
   .ol-item:hover { background: #f0eee5; }
@@ -144,7 +149,7 @@
       <div class="sec-label">文件</div>
       <nav id="tree"></nav>
     </div>
-    <div id="panel-comments" style="display:none"><div id="comments-list"></div></div>
+    <div id="panel-comments" style="display:none"><div class="cmt-tools"><button id="copy-comments-md" type="button" title="复制本页所有评论为 Markdown">复制 MD</button><span id="copy-comments-status" class="cmt-copy-status"></span></div><div id="comments-list"></div></div>
   </aside>
   <div id="resizer" title="拖拽调整宽度 · 双击复位"></div>
   <div id="main">
@@ -413,6 +418,9 @@
   document.getElementById("rootname").textContent = `${root}/`;
   document.getElementById("doccount").textContent = `${docs.length} 篇`;
   const countByPath = new Map(docs.map((d) => [d.path, d.count]));
+  const initialCommentCount = docName ? (countByPath.get(docName) ?? 0) : 0;
+  document.getElementById("cmt-count").textContent = initialCommentCount || "";
+  document.getElementById("copy-comments-md").disabled = !docName || !initialCommentCount;
 
   function buildTree(list) {
     const rootNode = { dirs: new Map(), files: [] };
@@ -600,6 +608,86 @@
     return (Array.isArray(sel) ? sel : [sel]).find((s) => s?.type === "TextQuoteSelector")?.exact ?? "";
   }
 
+  function bodyOf(a) {
+    return (a?.body ?? []).map((b) => b.value).filter(Boolean).join("\n");
+  }
+
+  function commentDocTop(it) {
+    const mermaidEls = document.querySelectorAll("#content .mermaid");
+    const el = it.box
+      ? mermaidEls[boxSelOf(it.a).diagramIndex ?? -1]
+      : document.querySelector(`.r6o-annotation[data-id="${CSS.escape(it.a.id)}"]`);
+    return el ? el.getBoundingClientRect().top + window.scrollY : Number.MAX_SAFE_INTEGER;
+  }
+
+  function collectCommentItems() {
+    const textItems = recogito ? recogito.getAnnotations() : [];
+    return [
+      ...textItems.map((a) => ({ a, box: false })),
+      ...boxAnnotations.map((a) => ({ a, box: true })),
+    ].sort((a, b) => commentDocTop(a) - commentDocTop(b));
+  }
+
+  function itemsFromAnnotations(annotations) {
+    return (annotations ?? []).map((a) => ({ a, box: isBoxAnno(a) })).sort((a, b) => commentDocTop(a) - commentDocTop(b));
+  }
+
+  async function currentCommentItemsForCopy() {
+    if (!docName) return [];
+    try {
+      const state = await (await fetch(`/api/annotations/${encodeURI(docName)}`)).json();
+      if (Array.isArray(state.annotations)) return itemsFromAnnotations(state.annotations);
+    } catch (err) {
+      console.error("批注导出读取失败", err);
+    }
+    return collectCommentItems();
+  }
+
+  function mdBlockquote(value) {
+    const text = (value || "（无摘录）").trim();
+    return text.split(/\r?\n/).map((line) => `> ${line || " "}`).join("\n");
+  }
+
+  function commentsMarkdown(items) {
+    const title = docName || "未选择文档";
+    if (!items.length) return `# ${title} 的评论\n\n暂无评论。\n`;
+    return [
+      `# ${title} 的评论`,
+      "",
+      ...items.flatMap((it, i) => {
+        const type = it.box ? "图框评论" : "文字评论";
+        const quote = it.box ? (boxSelOf(it.a).extractedText || "（无文字）") : quoteOf(it.a);
+        const comment = bodyOf(it.a).trim() || "（空）";
+        return [
+          `## ${i + 1}. ${type}`,
+          "",
+          mdBlockquote(quote),
+          "",
+          comment,
+          "",
+        ];
+      }),
+    ].join("\n").replace(/\n{3,}/g, "\n\n").trimEnd() + "\n";
+  }
+
+  async function copyText(text) {
+    if (navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return;
+      } catch {}
+    }
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.left = "-9999px";
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    document.execCommand("copy");
+    ta.remove();
+  }
+
   // 实时刷新文件树里某文档的批注数 badge（加载时的 /api/tree 只是快照，
   // 加/删批注后用此函数同步，主树 + 置顶区的同名行都更新）
   function refreshBadge(path, count) {
@@ -621,21 +709,13 @@
 
   function renderComments() {
     const listEl = document.getElementById("comments-list");
-    const textItems = recogito ? recogito.getAnnotations() : [];
-    const items = [
-      ...textItems.map((a) => ({ a, box: false })),
-      ...boxAnnotations.map((a) => ({ a, box: true })),
-    ];
     // 侧栏评论顺序 = 文中位置：box 取第 N 个 mermaid holder（不依赖 data 属性的设置时机）、
     // text 取已渲染的 annotation 元素；按在文档里的垂直位置排序。
-    const mermaidEls = document.querySelectorAll("#content .mermaid");
-    const docTop = (it) => {
-      const el = it.box
-        ? mermaidEls[boxSelOf(it.a).diagramIndex ?? -1]
-        : document.querySelector(`.r6o-annotation[data-id="${CSS.escape(it.a.id)}"]`);
-      return el ? el.getBoundingClientRect().top + window.scrollY : Number.MAX_SAFE_INTEGER;
-    };
-    items.sort((a, b) => docTop(a) - docTop(b));
+    const items = collectCommentItems();
+    const copyBtn = document.getElementById("copy-comments-md");
+    const copyStatus = document.getElementById("copy-comments-status");
+    copyBtn.disabled = !docName || !items.length;
+    if (!items.length) copyStatus.textContent = "";
     document.getElementById("cmt-count").textContent = items.length || "";
     if (docName) refreshBadge(docName, items.length);
     renderBoxMarkers();
@@ -644,7 +724,7 @@
       return;
     }
     listEl.innerHTML = items.map((it, i) => {
-      const comment = (it.a.body ?? []).map((b) => b.value).filter(Boolean).join("\n");
+      const comment = bodyOf(it.a);
       const q = it.box ? `▢ 图框：${boxSelOf(it.a).extractedText || "（无文字）"}` : quoteOf(it.a);
       return `<div class="cmt${it.box ? " cmt-box" : ""}" data-i="${i}"><button class="del" title="删除">✕</button><div class="q">${q}</div><div class="c">${comment}</div></div>`;
     }).join("");
@@ -671,6 +751,21 @@
       }
     };
   }
+
+  document.getElementById("copy-comments-md").addEventListener("click", async () => {
+    const status = document.getElementById("copy-comments-status");
+    try {
+      const items = await currentCommentItemsForCopy();
+      const md = commentsMarkdown(items);
+      window.__lastCommentsMarkdown = md;
+      await copyText(md);
+      status.textContent = `已复制 ${items.length} 条`;
+      setTimeout(() => { if (status.textContent.startsWith("已复制")) status.textContent = ""; }, 1800);
+    } catch (err) {
+      status.textContent = "复制失败";
+      console.error(err);
+    }
+  });
 
   const contentEl = document.getElementById("content");
 
@@ -819,15 +914,17 @@
     document.getElementById("docname").textContent = docName;
     document.title = docName;
 
-    const [{ unified }, remarkParse, remarkGfm, remarkRehype, rehypeStringify, mermaidMod] = await Promise.all([
+    const [{ unified }, remarkParse, remarkGfm, remarkRehype, rehypeStringify, mermaidMod, recogitoMod] = await Promise.all([
       import("https://esm.sh/unified@11"),
       import("https://esm.sh/remark-parse@11"),
       import("https://esm.sh/remark-gfm@4"),
       import("https://esm.sh/remark-rehype@11"),
       import("https://esm.sh/rehype-stringify@10"),
       import("https://esm.sh/mermaid@11"),
+      import("https://esm.sh/@recogito/recogito-js@1.8.4"),
     ]);
     const mermaid = mermaidMod.default;
+    const initRecogito = window.Recogito?.init ?? recogitoMod.init ?? recogitoMod.default?.init ?? recogitoMod.Recogito?.init;
 
     const md = await (await fetch(`/raw/${encodeURI(docName)}`)).text();
     const html = String(
@@ -1009,7 +1106,7 @@
     }
     window.__closeDiagram = closeDiagram;
 
-    const r = Recogito.init({ content: contentEl, disableEditor: true });
+    const r = initRecogito({ content: contentEl, disableEditor: true });
     recogito = r;
     window.__recogito = r;
 
@@ -1104,7 +1201,11 @@
       annoBase = saved.updatedAt ?? null;
       const allLoaded = saved.annotations ?? [];
       boxAnnotations = allLoaded.filter(isBoxAnno);
-      await r.setAnnotations(allLoaded.filter((a) => !isBoxAnno(a)));
+      try {
+        await r.setAnnotations(allLoaded.filter((a) => !isBoxAnno(a)));
+      } catch (err) {
+        console.error("文字批注锚定失败", err);
+      }
       renderComments();
     } catch (err) {
       console.error("批注加载失败", err);
@@ -1114,7 +1215,11 @@
       annoBase = state.updatedAt ?? null;
       const allState = state.annotations ?? [];
       boxAnnotations = allState.filter(isBoxAnno);
-      await r.setAnnotations(allState.filter((a) => !isBoxAnno(a)));
+      try {
+        await r.setAnnotations(allState.filter((a) => !isBoxAnno(a)));
+      } catch (err) {
+        console.error("文字批注锚定失败", err);
+      }
       renderComments();
     }
 

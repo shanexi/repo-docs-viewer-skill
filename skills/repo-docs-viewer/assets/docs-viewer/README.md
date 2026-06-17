@@ -13,6 +13,7 @@ node tools/docs-viewer/server.mjs     # http://localhost:4642
 - Mermaid fenced blocks render with mermaid@11.
 - Text comments use RecogitoJS and the W3C Web Annotation model.
 - Mermaid diagrams support lightbox zoom/pan and box comments.
+- Current-document comments can be copied as Markdown with one click.
 - Annotation storage is embedded in a trailing `<!-- docs-viewer:annotations ... -->` markdown comment block, so comments travel with the file and can be tracked by git.
 - Environment variables: `DOCS_DIR` defaults to `docs/`; `ASSETS_DIR` defaults to `DOCS_DIR`; `PORT` defaults to `4642`.
 

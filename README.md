@@ -53,4 +53,5 @@ http://localhost:4642
 - Browser-rendered markdown and Mermaid
 - Obsidian image embeds, click-to-zoom images, and `==highlights==`
 - Embedded markdown annotations that can be tracked by git
+- One-click copy of all comments on the current document as Markdown
 - Desktop preview flow for Codex Desktop and Claude Code Desktop

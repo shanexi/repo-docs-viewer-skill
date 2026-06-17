@@ -9,7 +9,7 @@ description: Install, validate, preview, and use a portable zero-build markdown 
 
 Use this skill to add or operate a local markdown docs viewer in any repository. The viewer asset is bundled in `assets/docs-viewer/` and is designed to be copied into a repo at `tools/docs-viewer/`.
 
-The viewer serves markdown files from a docs directory with a sidebar tree, browser-rendered markdown, Obsidian image embeds, click-to-zoom image preview, Obsidian `==highlights==`, mermaid, text annotations, mermaid box comments, outline navigation, in-page search, and embedded annotation storage in the markdown file.
+The viewer serves markdown files from a docs directory with a sidebar tree, browser-rendered markdown, Obsidian image embeds, click-to-zoom image preview, Obsidian `==highlights==`, mermaid, text annotations, mermaid box comments, one-click Markdown copy for current-document comments, outline navigation, in-page search, and embedded annotation storage in the markdown file.
 
 ## Workflow
 
