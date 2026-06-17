@@ -1133,12 +1133,34 @@
       return window.getSelection()?.toString().trim() ?? "";
     }
 
+    function selectionTextFromPayload(selection) {
+      const sel = selection?.target?.selector ?? selection?.selector ?? [];
+      const selectors = Array.isArray(sel) ? sel : [sel];
+      return selectors.find((s) => s?.type === "TextQuoteSelector")?.exact?.trim() ?? "";
+    }
+
+    function selectionSpanRect() {
+      const rects = [...contentEl.querySelectorAll(".r6o-selection")]
+        .flatMap((span) => [...span.getClientRects()])
+        .filter((r) => r.width && r.height);
+      if (!rects.length) return null;
+      const left = Math.min(...rects.map((r) => r.left));
+      const right = Math.max(...rects.map((r) => r.right));
+      const top = Math.min(...rects.map((r) => r.top));
+      const bottom = Math.max(...rects.map((r) => r.bottom));
+      return { left, right, top, bottom, width: right - left, height: bottom - top };
+    }
+
     function selectionRect() {
       const sel = window.getSelection();
-      if (!sel?.rangeCount) return contentEl.getBoundingClientRect();
-      const range = sel.getRangeAt(0);
-      const rect = [...range.getClientRects()].find((r) => r.width && r.height);
-      return rect ?? range.getBoundingClientRect();
+      if (sel?.rangeCount) {
+        const range = sel.getRangeAt(0);
+        const rect = [...range.getClientRects()].find((r) => r.width && r.height);
+        if (rect) return rect;
+        const fallback = range.getBoundingClientRect();
+        if (fallback.width && fallback.height) return fallback;
+      }
+      return selectionSpanRect() ?? contentEl.getBoundingClientRect();
     }
 
     function showSelectionTools(anchorRect) {
@@ -1196,11 +1218,13 @@
       const an = window.getSelection()?.anchorNode;
       const inMermaid = an && ((an.nodeType === 1 ? an : an.parentElement)?.closest?.(".mermaid"));
       if (inMermaid) { window.getSelection()?.removeAllRanges(); clearSelectionSpans(); return; }  // 图不支持划线，用放大态框选
-      const text = selectedText();
-      if (!text) return dismissSelectionTools();
-      const rect = selectionRect();
-      pendingSelection = { payload: selection, rect, text };
-      showSelectionTools(rect);
+      requestAnimationFrame(() => {
+        const text = selectedText() || selectionTextFromPayload(selection);
+        if (!text) return dismissSelectionTools();
+        const rect = selectionRect();
+        pendingSelection = { payload: selection, rect, text };
+        showSelectionTools(rect);
+      });
     });
 
     r.on("selectAnnotation", (annotation, element) => {
