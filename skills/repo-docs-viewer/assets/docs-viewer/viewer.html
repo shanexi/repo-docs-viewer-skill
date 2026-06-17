@@ -97,6 +97,11 @@
   #anno-pop .ok:hover { background: #c96644; }
   #anno-pop .cancel { background: transparent; border: 1px solid #d9d8d3; color: #56554e; }
   #anno-pop .cancel:hover { background: #f0eee5; }
+  #sel-tools { position: absolute; z-index: 56; display: none; align-items: center; gap: 2px; padding: 3px; background: rgba(255,255,255,.97); border: 1px solid rgba(0,0,0,.1); border-radius: 8px; box-shadow: 0 6px 18px rgba(0,0,0,.14); }
+  #sel-tools button { width: 28px; height: 28px; display: inline-grid; place-items: center; border: 1px solid transparent; background: transparent; border-radius: 6px; color: #706f68; cursor: pointer; padding: 0; }
+  #sel-tools button:hover { color: #3b3a35; background: #f0eee5; border-color: #e2e0d8; }
+  #sel-tools button svg { width: 15px; height: 15px; }
+  #sel-tools.copied #sel-copy { color: #2f7d4b; background: #edf7ef; border-color: #cfe8d6; }
   .side-tabs { display: flex; gap: 4px; padding: 0 12px 8px; }
   .stab { flex: 1; border: 1px solid #e2e0d8; background: #fff; border-radius: 7px; padding: 4px 0; cursor: pointer; font: 12px system-ui; color: #56554e; }
   .stab.on { background: #e9e5d8; border-color: #d6d2c4; font-weight: 500; }
@@ -156,6 +161,7 @@
       <div class="zoom-ctl"><button id="zoom-out" title="缩小字号">A−</button><button id="zoom-pct" title="点击复原 100%">100%</button><button id="zoom-in" title="放大字号">A+</button></div></div>
     <article id="content" class="markdown-body" style="padding: 10px 24px 100px"></article>
     <div id="anno-pop"><div id="box-extract"></div><textarea placeholder="写下评论…"></textarea><div class="foot"><button class="cancel">取消</button><button class="ok">确定</button></div></div>
+    <div id="sel-tools" role="toolbar" aria-label="选中文本操作"><button id="sel-copy" type="button" title="复制选中文本" aria-label="复制选中文本"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></button><button id="sel-comment" type="button" title="评论选中文本" aria-label="评论选中文本"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path></svg></button></div>
     <div id="find-bar" style="display:none"><input placeholder="查找" spellcheck="false"><span id="find-count"></span><button id="find-prev" title="上一个 (Shift+Enter)">∧</button><button id="find-next" title="下一个 (Enter)">∨</button><button id="find-close" title="关闭 (Esc)">✕</button></div>
   </div>
 </div>
@@ -1106,7 +1112,11 @@
 
     const pop = document.getElementById("anno-pop");
     const popTa = pop.querySelector("textarea");
+    const selTools = document.getElementById("sel-tools");
+    const selCopyBtn = document.getElementById("sel-copy");
+    const selCommentBtn = document.getElementById("sel-comment");
     let popTarget = null;
+    let pendingSelection = null;
 
     function openPop(anchorRect, value) {
       const mainEl = document.getElementById("main");
@@ -1119,35 +1129,114 @@
       popTa.focus();
     }
 
+    function selectedText() {
+      return window.getSelection()?.toString().trim() ?? "";
+    }
+
+    function selectionRect() {
+      const sel = window.getSelection();
+      if (!sel?.rangeCount) return contentEl.getBoundingClientRect();
+      const range = sel.getRangeAt(0);
+      const rect = [...range.getClientRects()].find((r) => r.width && r.height);
+      return rect ?? range.getBoundingClientRect();
+    }
+
+    function showSelectionTools(anchorRect) {
+      const mainEl = document.getElementById("main");
+      const hostRect = mainEl.getBoundingClientRect();
+      selTools.classList.remove("copied");
+      selCopyBtn.title = "复制选中文本";
+      selTools.style.display = "flex";
+      selTools.style.visibility = "hidden";
+      const toolW = selTools.offsetWidth || 64;
+      const toolH = selTools.offsetHeight || 34;
+      const minLeft = mainEl.scrollLeft + 8;
+      const maxLeft = mainEl.scrollLeft + mainEl.clientWidth - toolW - 8;
+      const wantedLeft = anchorRect.left - hostRect.left + mainEl.scrollLeft + anchorRect.width - toolW;
+      const left = Math.max(minLeft, Math.min(maxLeft, wantedLeft));
+      let top = anchorRect.top - hostRect.top + mainEl.scrollTop - toolH - 8;
+      if (top < mainEl.scrollTop + 8) top = anchorRect.bottom - hostRect.top + mainEl.scrollTop + 8;
+      selTools.style.left = `${left}px`;
+      selTools.style.top = `${top}px`;
+      selTools.style.visibility = "";
+    }
+
+    function hideSelectionTools() {
+      selTools.style.display = "none";
+      selTools.style.visibility = "";
+      selTools.classList.remove("copied");
+      selCopyBtn.title = "复制选中文本";
+      pendingSelection = null;
+    }
+
     function clearSelectionSpans() {
       for (const span of contentEl.querySelectorAll(".r6o-selection")) {
         span.replaceWith(...span.childNodes);
       }
       contentEl.normalize();
     }
-    function closePop() {
-      pop.style.display = "none";
-      popTarget = null;
+    function clearSelectionState() {
+      pendingSelection = null;
       window.getSelection()?.removeAllRanges();
       r.selectAnnotation();
       clearSelectionSpans();
+    }
+    function dismissSelectionTools() {
+      hideSelectionTools();
+      clearSelectionState();
+    }
+    function closePop() {
+      pop.style.display = "none";
+      popTarget = null;
+      hideSelectionTools();
+      clearSelectionState();
     }
 
     r.on("createSelection", (selection) => {
       const an = window.getSelection()?.anchorNode;
       const inMermaid = an && ((an.nodeType === 1 ? an : an.parentElement)?.closest?.(".mermaid"));
       if (inMermaid) { window.getSelection()?.removeAllRanges(); clearSelectionSpans(); return; }  // 图不支持划线，用放大态框选
-      popTarget = { kind: "selection", payload: selection };
-      const rect = window.getSelection().rangeCount
-        ? window.getSelection().getRangeAt(0).getBoundingClientRect()
-        : contentEl.getBoundingClientRect();
-      openPop(rect, "");
+      const text = selectedText();
+      if (!text) return dismissSelectionTools();
+      const rect = selectionRect();
+      pendingSelection = { payload: selection, rect, text };
+      showSelectionTools(rect);
     });
 
     r.on("selectAnnotation", (annotation, element) => {
+      hideSelectionTools();
       popTarget = { kind: "annotation", payload: annotation };
       const value = (annotation.body ?? []).map((b) => b.value).filter(Boolean).join("\n");
       openPop(element.getBoundingClientRect(), value);
+    });
+
+    for (const type of ["pointerdown", "mousedown", "mouseup", "click"]) {
+      selTools.addEventListener(type, (e) => {
+        e.stopPropagation();
+        if (type !== "click") e.preventDefault();
+      });
+    }
+    selCopyBtn.addEventListener("click", async () => {
+      const text = pendingSelection?.text || selectedText();
+      if (!text) return;
+      try {
+        await copyText(text);
+        selTools.classList.add("copied");
+        selCopyBtn.title = "已复制";
+        setTimeout(() => {
+          selTools.classList.remove("copied");
+          selCopyBtn.title = "复制选中文本";
+        }, 1200);
+      } catch (err) {
+        console.error("选中文本复制失败", err);
+      }
+    });
+    selCommentBtn.addEventListener("click", () => {
+      const target = pendingSelection;
+      if (!target) return;
+      hideSelectionTools();
+      popTarget = { kind: "selection", payload: target.payload };
+      openPop(target.rect, "");
     });
 
     for (const type of ["pointerdown", "mousedown", "mouseup", "click"]) {
@@ -1169,11 +1258,8 @@
         const annotation = { ...target.payload, id: `#${crypto.randomUUID()}`, type: "Annotation", body };
         r.addAnnotation(annotation);
       } else {
-        if (!value) {
-          r.removeAnnotation(target.payload);
-        } else {
-          r.addAnnotation({ ...target.payload, body });
-        }
+        if (!value) return;
+        r.addAnnotation({ ...target.payload, body });
       }
       persist();
       renderComments();
@@ -1181,11 +1267,13 @@
     // 点 pop 外（仍在选中态、未写评论）→ 关闭并清掉划线高亮
     document.getElementById("main").addEventListener("mousedown", (e) => {
       if (pop.style.display === "block" && !pop.contains(e.target)) closePop();
+      if (selTools.style.display === "flex" && !selTools.contains(e.target)) dismissSelectionTools();
     });
     document.addEventListener("keydown", (e) => {
       if (e.key !== "Escape") return;
       if (document.getElementById("dia-overlay").classList.contains("show")) { window.__closeDiagram?.(); return; }
       if (pop.style.display === "block") closePop();
+      if (selTools.style.display === "flex") dismissSelectionTools();
     });
 
     const annoUrl = `/api/annotations/${encodeURI(docName)}`;
@@ -1256,7 +1344,8 @@
     });
     r.on("createAnnotation", () => { persist(); renderComments(); });
     r.on("updateAnnotation", () => { persist(); renderComments(); });
-    r.on("deleteAnnotation", () => { persist(); renderComments(); });
+    // There is no delete affordance; do not persist unexpected library-level deletes.
+    r.on("deleteAnnotation", () => { renderComments(); });
 
     // —— mermaid 图框选评论：框选区域 → 提取框内 SVG 文字 → 评论（绕开 SVG 锚定）——
     function extractTextInBox(svg, absBox) {
