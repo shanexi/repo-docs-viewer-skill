@@ -5,6 +5,32 @@ description: Install, validate, preview, and use a portable zero-build markdown 
 
 # Repo Docs Viewer
 
+## Quick Start
+
+Install the skill:
+
+```bash
+npx skills add https://github.com/shanexi/repo-docs-viewer-skill --skill repo-docs-viewer
+```
+
+Then ask your coding agent:
+
+```text
+Use $repo-docs-viewer to install and preview docs for this repo.
+```
+
+The agent will copy the zero-build viewer into `tools/docs-viewer/`, validate the routes, start the local server, and open the preview when Codex Desktop, Claude Code Desktop, or another browser surface is available.
+
+## Preview
+
+Docs tree:
+
+![Docs tree](https://raw.githubusercontent.com/shanexi/repo-docs-viewer-skill/main/assets/docs-tree.png)
+
+Rendered markdown:
+
+![Markdown preview](https://raw.githubusercontent.com/shanexi/repo-docs-viewer-skill/main/assets/markdown-preview.png)
+
 ## Overview
 
 Use this skill to add or operate a local markdown docs viewer in any repository. The viewer asset is bundled in `assets/docs-viewer/` and is designed to be copied into a repo at `tools/docs-viewer/`.
