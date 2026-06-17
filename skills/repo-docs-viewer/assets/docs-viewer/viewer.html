@@ -106,11 +106,12 @@
   .cmt .c { color: #1a1915; white-space: pre-wrap; }
   .cmt .del { float: right; border: none; background: none; color: #b6b4ab; cursor: pointer; font-size: 12px; padding: 0 2px; }
   .cmt .del:hover { color: #a32d2d; }
-  .cmt-tools { display: flex; align-items: center; gap: 8px; padding: 4px 12px 8px; border-bottom: 1px solid rgba(0,0,0,.05); margin-bottom: 4px; }
-  .cmt-tools button { border: 1px solid #d9d8d3; background: #fff; border-radius: 7px; cursor: pointer; color: #56554e; font: 12px system-ui; padding: 4px 9px; }
-  .cmt-tools button:hover:not(:disabled) { background: #f0eee5; }
-  .cmt-tools button:disabled { cursor: default; color: #b6b4ab; background: #faf9f5; }
-  .cmt-copy-status { color: #9b9a92; font: 12px system-ui; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cmt-tools { display: flex; align-items: center; justify-content: flex-end; gap: 6px; min-height: 30px; padding: 2px 12px 4px; margin-bottom: 2px; }
+  .cmt-tools button { width: 28px; height: 28px; display: inline-grid; place-items: center; border: 1px solid transparent; background: transparent; border-radius: 6px; cursor: pointer; color: #8e8d86; padding: 0; }
+  .cmt-tools button svg { width: 15px; height: 15px; }
+  .cmt-tools button:hover:not(:disabled) { color: #56554e; background: #f0eee5; border-color: #e2e0d8; }
+  .cmt-tools button:disabled { cursor: default; color: #b6b4ab; background: transparent; border-color: transparent; opacity: .45; }
+  .cmt-copy-status { flex: 1; min-width: 0; color: #9b9a92; font: 12px system-ui; overflow: hidden; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
   .cmt-empty { padding: 10px 14px; color: #9b9a92; font: 12px system-ui; }
   .ol-item { padding: 3px 12px; cursor: pointer; font: 12px/1.5 system-ui; color: #57564f; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-left: 2px solid transparent; }
   .ol-item:hover { background: #f0eee5; }
@@ -149,7 +150,7 @@
       <div class="sec-label">文件</div>
       <nav id="tree"></nav>
     </div>
-    <div id="panel-comments" style="display:none"><div class="cmt-tools"><button id="copy-comments-md" type="button" title="复制本页所有评论为 Markdown">复制 MD</button><span id="copy-comments-status" class="cmt-copy-status"></span></div><div id="comments-list"></div></div>
+    <div id="panel-comments" style="display:none"><div class="cmt-tools"><span id="copy-comments-status" class="cmt-copy-status"></span><button id="copy-comments-md" type="button" title="复制本页所有评论为 Markdown" aria-label="复制本页所有评论为 Markdown"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></button></div><div id="comments-list"></div></div>
   </aside>
   <div id="resizer" title="拖拽调整宽度 · 双击复位"></div>
   <div id="main">
