@@ -50,6 +50,7 @@ if [[ -z "$sample_md" ]]; then
   exit 1
 fi
 sample_rel="${sample_md#"$docs_dir"/}"
+sample_url="$(node -e 'console.log(process.argv[1].split("/").map(encodeURIComponent).join("/"))' "$sample_rel")"
 
 log_file="$(mktemp /tmp/repo-docs-viewer.XXXXXX.log)"
 DOCS_DIR="$docs_dir" PORT="$port" node "$server" >"$log_file" 2>&1 &
@@ -75,7 +76,7 @@ done
 
 curl -fsS "$base_url/" >/dev/null
 curl -fsS "$base_url/api/tree" >/dev/null
-curl -fsS --path-as-is "$base_url/raw/$sample_rel" >/dev/null
+curl -fsS --path-as-is "$base_url/raw/$sample_url" >/dev/null
 
 traversal_code="$(curl -sS -o /dev/null -w '%{http_code}' --path-as-is "$base_url/raw/%2e%2e/package.json" || true)"
 if [[ "$traversal_code" == "200" ]]; then
@@ -85,4 +86,4 @@ fi
 
 echo "docs-viewer validation passed."
 echo "Base URL: $base_url"
-echo "Sample raw markdown: /raw/$sample_rel"
+echo "Sample raw markdown: /raw/$sample_url"
