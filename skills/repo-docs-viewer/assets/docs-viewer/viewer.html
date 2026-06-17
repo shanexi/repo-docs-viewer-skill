@@ -1,0 +1,1029 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>docs</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/github-markdown-css@5/github-markdown-light.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@recogito/recogito-js@1.8.4/dist/recogito.min.css">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #fff; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif; }
+  .app { display: flex; height: 100vh; }
+  #sidebar { width: 300px; flex: none; min-width: 160px; max-width: 70vw; background: #faf9f5; border-right: 1px solid #e8e6df; overflow-y: auto; padding: 10px 0 32px; }
+  .app.no-side #sidebar, .app.no-side #resizer { display: none; }
+  #resizer { flex: none; width: 6px; margin: 0 -3px; cursor: col-resize; background: transparent; z-index: 30; position: relative; }
+  #resizer:hover, #resizer.dragging { background: #d9cdb4; }
+  #main { flex: 1; overflow-y: auto; position: relative; }
+  .topbar { position: sticky; top: 0; z-index: 20; background: rgba(255,255,255,.97); border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 10px; padding: 7px 14px; font: 13px/1.4 system-ui; color: #57606a; }
+  ::highlight(find-all) { background: #ffe066; color: #1a1915; }
+  ::highlight(find-current) { background: #ff9632; color: #1a1915; }
+  #find-bar { position: fixed; top: 50px; right: 22px; z-index: 60; align-items: center; gap: 6px; background: #fff; border: 1px solid #d9d8d3; border-radius: 10px; box-shadow: 0 4px 16px rgba(0,0,0,.12); padding: 5px 8px; }
+  #find-bar input { border: none; outline: none; font: 13px system-ui; width: 180px; color: #1a1915; }
+  #find-count { font: 12px system-ui; color: #9b9a92; min-width: 38px; text-align: right; }
+  #find-count.none { color: #a32d2d; }
+  #find-bar button { border: none; background: none; cursor: pointer; color: #56554e; font-size: 12px; padding: 2px 4px; border-radius: 5px; }
+  #find-bar button:hover { background: #f0eee5; }
+  .zoom-ctl { margin-left: auto; display: flex; align-items: center; gap: 2px; }
+  .zoom-ctl button { border: 1px solid #d9d8d3; background: #fff; border-radius: 6px; cursor: pointer; color: #56554e; font-size: 12px; padding: 2px 8px; line-height: 1.4; }
+  .zoom-ctl button:hover { background: #f0eee5; }
+  .zoom-ctl #zoom-pct { border: none; background: none; min-width: 46px; text-align: center; }
+  #toggle { border: 1px solid #d9d8d3; background: #fff; border-radius: 6px; cursor: pointer; padding: 2px 8px; color: #56554e; font-size: 13px; }
+  #toggle:hover { background: #f0eee5; }
+  .side-head { padding: 2px 14px 8px; font: 500 13px system-ui; color: #3b3a35; display: flex; justify-content: space-between; align-items: baseline; }
+  .side-head a { color: #3b3a35; text-decoration: none; }
+  .side-head .n { color: #9b9a92; font-size: 11px; font-weight: 400; }
+  .sec-label { padding: 10px 14px 3px; font: 500 11px system-ui; color: #9b9a92; letter-spacing: .4px; }
+  .t-row { display: flex; align-items: center; gap: 5px; padding: 2px 8px 2px var(--pad, 12px); cursor: pointer; font: 13px/1.7 system-ui; color: #3b3a35; white-space: nowrap; }
+  .t-row:hover { background: #f0eee5; }
+  .t-row.active { background: #e9e5d8; font-weight: 500; }
+  .chev { flex: none; width: 12px; font-size: 9px; color: #8e8d86; transition: transform .1s; text-align: center; }
+  .t-dir.open > .t-row .chev { transform: rotate(90deg); }
+  .kids { display: none; }
+  .t-dir.open > .kids { display: block; }
+  .name { overflow: hidden; text-overflow: ellipsis; }
+  .badge { margin-left: auto; flex: none; font-size: 11px; color: #b08968; }
+  .star { flex: none; border: none; background: none; cursor: pointer; color: #bf8700; font-size: 12px; padding: 0 2px; visibility: hidden; line-height: 1; }
+  .t-row:hover .star, .star.on { visibility: visible; }
+  .t-row .badge + .star { margin-left: 2px; }
+  .t-row .star:only-of-type { margin-left: auto; }
+  #pins .t-row .name { font-size: 12px; }
+  .markdown-body { background: #fff; }
+  .markdown-body pre.mermaid { background: transparent; text-align: center; }
+  .markdown-body pre.mermaid svg { cursor: zoom-in; }
+  #dia-overlay { position: fixed; inset: 0; z-index: 100; background: rgba(20,19,17,.82); display: none; --dia-cmt-w: 340px; }
+  #dia-overlay.show { display: block; }
+  #dia-stage { position: absolute; inset: 0; background: #fff; overflow: hidden; }
+  #dia-overlay.with-comments #dia-stage { right: var(--dia-cmt-w); }
+  #dia-comments { position: absolute; top: 0; right: 0; bottom: 0; width: var(--dia-cmt-w); background: #fbfaf7; border-left: 1px solid rgba(0,0,0,.12); z-index: 102; overflow-y: auto; padding: 16px 14px; display: none; }
+  #dia-overlay.with-comments #dia-comments { display: block; }
+  /* 双栏分隔条：拖动改评论栏宽度 */
+  #dia-resizer { position: absolute; top: 0; bottom: 0; right: var(--dia-cmt-w); width: 9px; margin-right: -4px; cursor: col-resize; z-index: 104; display: none; }
+  #dia-overlay.with-comments #dia-resizer { display: block; }
+  #dia-resizer:hover, #dia-resizer.dragging { background: rgba(217,119,87,.35); }
+  /* with-comments 时关闭/框选/提示避让到左侧图区，不被评论栏遮住 */
+  #dia-overlay.with-comments #dia-close { right: calc(16px + var(--dia-cmt-w)); }
+  #dia-overlay.with-comments #dia-boxbtn { right: calc(96px + var(--dia-cmt-w)); }
+  #dia-overlay.with-comments #dia-hint { left: calc(50% - var(--dia-cmt-w) / 2); }
+  #dia-comments .dc-title { font: 600 13px system-ui; color: #56554e; margin-bottom: 10px; }
+  #dia-comments .dc-empty { font: 13px system-ui; color: #9b9a92; }
+  #dia-comments .dc-item { background: #fff; border: 1px solid rgba(0,0,0,.08); border-radius: 8px; padding: 10px; margin-bottom: 8px; }
+  #dia-comments .dc-extract { font: 12px/1.5 system-ui; color: #8a5a44; background: #faf6f0; border-radius: 5px; padding: 5px 7px; margin-bottom: 6px; white-space: pre-wrap; }
+  #dia-comments .dc-body { font: 14px/1.6 system-ui; color: #1a1915; white-space: pre-wrap; }
+  #dia-stage svg { width: 100%; height: 100%; display: block; cursor: grab; user-select: none; }
+  #dia-stage.dragging svg { cursor: grabbing; }
+  #dia-stage svg text, #dia-stage svg tspan, #dia-stage svg foreignObject, #dia-stage svg foreignObject * { user-select: text; cursor: text; }
+  #dia-close { position: absolute; top: 14px; right: 16px; z-index: 101; border: 1px solid #d9d8d3; background: #fff; color: #56554e; border-radius: 8px; font: 14px system-ui; padding: 4px 12px; cursor: pointer; }
+  #dia-close:hover { background: #f0eee5; }
+  #dia-hint { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); color: #8e8d86; font: 12px system-ui; background: rgba(255,255,255,.85); padding: 4px 12px; border-radius: 12px; }
+  .r6o-annotation, .r6o-selection { background: rgba(217, 119, 87, .16); border-bottom: 2px solid rgba(217, 119, 87, .65); cursor: pointer; }
+  .r6o-annotation:hover { background: rgba(217, 119, 87, .28); }
+  #anno-pop { position: absolute; z-index: 50; width: 340px; background: #fff; border: 1px solid rgba(0,0,0,.1); border-radius: 12px; box-shadow: 0 8px 28px rgba(0,0,0,.14); overflow: hidden; display: none; }
+  #anno-pop textarea { width: 100%; min-height: 72px; border: none; outline: none; resize: vertical; font-size: calc(14px * var(--zoom, 1)); line-height: 1.6; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; padding: 12px 12px 6px; color: #1a1915; background: #fff; }
+  #anno-pop textarea::placeholder { color: #9b9a92; }
+  #anno-pop .foot { background: #faf9f5; border-top: 1px solid rgba(0,0,0,.06); padding: 8px 10px; display: flex; gap: 8px; justify-content: flex-end; }
+  #anno-pop .foot button { border-radius: 8px; font: 500 13px system-ui; padding: 6px 16px; cursor: pointer; }
+  #anno-pop .ok { background: #d97757; border: 1px solid #d97757; color: #fff; }
+  #anno-pop .ok:hover { background: #c96644; }
+  #anno-pop .cancel { background: transparent; border: 1px solid #d9d8d3; color: #56554e; }
+  #anno-pop .cancel:hover { background: #f0eee5; }
+  .side-tabs { display: flex; gap: 4px; padding: 0 12px 8px; }
+  .stab { flex: 1; border: 1px solid #e2e0d8; background: #fff; border-radius: 7px; padding: 4px 0; cursor: pointer; font: 12px system-ui; color: #56554e; }
+  .stab.on { background: #e9e5d8; border-color: #d6d2c4; font-weight: 500; }
+  .cmt { margin: 6px 12px; padding: 8px 10px; background: #fff; border: 1px solid #e8e6df; border-radius: 8px; cursor: pointer; font: 12px/1.6 system-ui; }
+  .cmt:hover { border-color: #d97757; }
+  .cmt .q { color: #9b9a92; border-left: 2px solid #e3a886; padding-left: 6px; margin-bottom: 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .cmt .c { color: #1a1915; white-space: pre-wrap; }
+  .cmt .del { float: right; border: none; background: none; color: #b6b4ab; cursor: pointer; font-size: 12px; padding: 0 2px; }
+  .cmt .del:hover { color: #a32d2d; }
+  .cmt-empty { padding: 10px 14px; color: #9b9a92; font: 12px system-ui; }
+  .ol-item { padding: 3px 12px; cursor: pointer; font: 12px/1.5 system-ui; color: #57564f; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-left: 2px solid transparent; }
+  .ol-item:hover { background: #f0eee5; }
+  .ol-item.active { border-left-color: #d97757; color: #1a1915; background: #faf6f0; }
+  .ol-h1 { font-weight: 600; color: #3b3a35; }
+  .ol-h2 { font-weight: 500; color: #3b3a35; }
+  .ol-empty { padding: 10px 14px; color: #9b9a92; font: 12px system-ui; }
+  .mm-box-badge { position: absolute; top: 6px; right: 6px; z-index: 5; border: 1px solid #e3a886; background: rgba(255,246,240,.95); border-radius: 6px; font: 11px system-ui; color: #b08968; padding: 2px 8px; cursor: pointer; }
+  .mm-box-badge:hover { background: #f7ece3; }
+  #dia-boxbtn { position: absolute; top: 14px; right: 96px; z-index: 101; border: 1px solid #d9d8d3; background: #fff; color: #56554e; border-radius: 8px; font: 14px system-ui; padding: 4px 12px; cursor: pointer; }
+  #dia-boxbtn:hover { background: #f0eee5; }
+  #dia-boxbtn.active { background: #d97757; border-color: #d97757; color: #fff; }
+  #dia-stage.boxmode svg { cursor: crosshair !important; }
+  #dia-box-rect { position: fixed; display: none; border: 1.5px solid #d97757; background: rgba(217,119,87,.16); pointer-events: none; z-index: 102; }
+  #dia-box-pop { position: fixed; z-index: 103; width: 340px; background: #fff; border: 1px solid rgba(0,0,0,.12); border-radius: 12px; box-shadow: 0 8px 28px rgba(0,0,0,.22); overflow: hidden; display: none; }
+  #dia-box-extract { background: #faf6f0; border-bottom: 1px solid rgba(0,0,0,.06); padding: 8px 12px; font: 12px/1.5 system-ui; color: #8a5a44; max-height: 90px; overflow-y: auto; white-space: pre-wrap; }
+  #dia-box-pop textarea { width: 100%; min-height: 64px; border: none; outline: none; resize: vertical; font: 14px/1.6 -apple-system, "PingFang SC", sans-serif; padding: 10px 12px 4px; color: #1a1915; }
+  #dia-box-pop .foot { background: #faf9f5; border-top: 1px solid rgba(0,0,0,.06); padding: 8px 10px; display: flex; gap: 8px; justify-content: flex-end; }
+  #dia-box-pop .foot button { border-radius: 8px; font: 500 13px system-ui; padding: 6px 16px; cursor: pointer; }
+  #dia-box-pop .ok { background: #d97757; border: 1px solid #d97757; color: #fff; }
+  #dia-box-pop .cancel { background: transparent; border: 1px solid #d9d8d3; color: #56554e; }
+  .cmt-box .q { border-left-color: #d97757; color: #8a5a44; }
+</style>
+<body>
+<div class="app" id="app">
+  <aside id="sidebar">
+    <div class="side-head"><a href="/" id="rootname">docs/</a><span class="n" id="doccount"></span></div>
+    <div class="side-tabs">
+      <button class="stab on" data-tab="files">文件</button>
+      <button class="stab" data-tab="outline">大纲</button>
+      <button class="stab" data-tab="comments">评论 <span id="cmt-count"></span></button>
+    </div>
+    <div id="panel-outline" style="display:none"><div id="outline-list"></div></div>
+    <div id="panel-files">
+      <div id="pins-sec" style="display:none"><div class="sec-label">置顶</div><div id="pins"></div></div>
+      <div class="sec-label">文件</div>
+      <nav id="tree"></nav>
+    </div>
+    <div id="panel-comments" style="display:none"><div id="comments-list"></div></div>
+  </aside>
+  <div id="resizer" title="拖拽调整宽度 · 双击复位"></div>
+  <div id="main">
+    <div class="topbar"><button id="toggle" title="收起/展开目录">☰</button><span id="docname">选择左侧文档</span>
+      <div class="zoom-ctl"><button id="zoom-out" title="缩小字号">A−</button><button id="zoom-pct" title="点击复原 100%">100%</button><button id="zoom-in" title="放大字号">A+</button></div></div>
+    <article id="content" class="markdown-body" style="padding: 10px 24px 100px"></article>
+    <div id="anno-pop"><div id="box-extract"></div><textarea placeholder="写下评论…"></textarea><div class="foot"><button class="cancel">取消</button><button class="ok">确定</button></div></div>
+    <div id="find-bar" style="display:none"><input placeholder="查找" spellcheck="false"><span id="find-count"></span><button id="find-prev" title="上一个 (Shift+Enter)">∧</button><button id="find-next" title="下一个 (Enter)">∨</button><button id="find-close" title="关闭 (Esc)">✕</button></div>
+  </div>
+</div>
+<div id="dia-overlay"><div id="dia-stage"></div><div id="dia-resizer"></div><div id="dia-comments"></div><div id="dia-box-rect"></div><button id="dia-boxbtn" title="框选图中区域评论">▢ 框选评论</button><button id="dia-close">✕ 关闭</button><div id="dia-hint">滚轮缩放 · 拖拽平移 · 「▢ 框选评论」框选区域 · 双击复位 · Esc 关闭</div><div id="dia-box-pop"><div id="dia-box-extract"></div><textarea placeholder="评论这块区域…"></textarea><div class="foot"><button class="cancel">取消</button><button class="ok">确定</button></div></div></div>
+<script src="https://cdn.jsdelivr.net/npm/@recogito/recogito-js@1.8.4/dist/recogito.min.js"></script>
+<script type="module">
+  const app = document.getElementById("app");
+  const SIDE_KEY = "docs-viewer:side";
+  const SIDE_W_KEY = "docs-viewer:side-w";
+  const PIN_KEY = "docs-viewer:pins";
+  const OPEN_KEY = "docs-viewer:open";
+  if (localStorage.getItem(SIDE_KEY) === "0") app.classList.add("no-side");
+  document.getElementById("toggle").addEventListener("click", () => {
+    app.classList.toggle("no-side");
+    localStorage.setItem(SIDE_KEY, app.classList.contains("no-side") ? "0" : "1");
+  });
+
+  // 侧边栏拖拽 resize（双击复位 300px，宽度记 localStorage）
+  const sidebarEl = document.getElementById("sidebar");
+  const resizerEl = document.getElementById("resizer");
+  const savedW = Number(localStorage.getItem(SIDE_W_KEY));
+  if (savedW >= 160) sidebarEl.style.width = `${savedW}px`;
+  let resizing = false;
+  resizerEl.addEventListener("pointerdown", (e) => {
+    resizing = true;
+    resizerEl.classList.add("dragging");
+    document.body.style.userSelect = "none";
+    try { resizerEl.setPointerCapture(e.pointerId); } catch {}
+  });
+  resizerEl.addEventListener("pointermove", (e) => {
+    if (!resizing) return;
+    const w = Math.max(160, Math.min(window.innerWidth * 0.7, e.clientX));
+    sidebarEl.style.width = `${w}px`;
+  });
+  resizerEl.addEventListener("pointerup", () => {
+    if (!resizing) return;
+    resizing = false;
+    resizerEl.classList.remove("dragging");
+    document.body.style.userSelect = "";
+    localStorage.setItem(SIDE_W_KEY, String(parseInt(sidebarEl.style.width, 10)));
+  });
+  resizerEl.addEventListener("dblclick", () => {
+    sidebarEl.style.width = "300px";
+    localStorage.removeItem(SIDE_W_KEY);
+  });
+
+  const docName = location.pathname.startsWith("/d/")
+    ? decodeURIComponent(location.pathname.slice(3))
+    : null;
+
+  const PIN_OPEN_KEY = "docs-viewer:pins-open";
+  const pins = new Set(JSON.parse(localStorage.getItem(PIN_KEY) ?? "[]"));
+  const openDirs = new Set(JSON.parse(localStorage.getItem(OPEN_KEY) ?? "[]"));
+  const pinOpenDirs = new Set(JSON.parse(localStorage.getItem(PIN_OPEN_KEY) ?? "[]"));
+
+  function ancestorsOf(path) {
+    const out = [];
+    let acc = "";
+    for (const part of path.split("/").slice(0, -1)) {
+      acc = acc ? `${acc}/${part}` : part;
+      out.push(acc);
+    }
+    return out;
+  }
+
+  const { root, docs } = await (await fetch("/api/tree")).json();
+  document.getElementById("rootname").textContent = `${root}/`;
+  document.getElementById("doccount").textContent = `${docs.length} 篇`;
+  const countByPath = new Map(docs.map((d) => [d.path, d.count]));
+
+  function buildTree(list) {
+    const rootNode = { dirs: new Map(), files: [] };
+    for (const { path } of list) {
+      const parts = path.split("/");
+      let node = rootNode;
+      let acc = "";
+      for (const part of parts.slice(0, -1)) {
+        acc = acc ? `${acc}/${part}` : part;
+        if (!node.dirs.has(part)) node.dirs.set(part, { dirs: new Map(), files: [], full: acc });
+        node = node.dirs.get(part);
+      }
+      node.files.push(path);
+    }
+    return rootNode;
+  }
+
+  function rowHtml(path, depth, { fullLabel = false } = {}) {
+    const label = fullLabel || !path.includes("/") ? path : path.slice(path.lastIndexOf("/") + 1);
+    const count = countByPath.get(path) ?? 0;
+    const active = path === docName ? " active" : "";
+    const starOn = pins.has(path) ? " on" : "";
+    return `<div class="t-row t-file${active}" data-path="${path}" style="--pad:${12 + depth * 14}px">
+      <span class="chev"></span><span class="name">${label}</span>
+      ${count ? `<span class="badge">💬${count}</span>` : ""}
+      <button class="star${starOn}" title="置顶/取消">${pins.has(path) ? "★" : "☆"}</button></div>`;
+  }
+
+  function dirRowHtml(path, label, depth) {
+    const starOn = pins.has(path) ? " on" : "";
+    return `<div class="t-row" data-path="${path}" style="--pad:${12 + depth * 14}px">
+      <span class="chev">▶</span><span class="name">${label}</span>
+      <button class="star${starOn}" title="置顶/取消">${pins.has(path) ? "★" : "☆"}</button></div>`;
+  }
+
+  function treeHtml(node, depth = 0) {
+    const dirs = [...node.dirs.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([name, child]) => `<div class="t-dir" data-dir="${child.full}">
+        ${dirRowHtml(child.full, name, depth)}
+        <div class="kids">${treeHtml(child, depth + 1)}</div></div>`)
+      .join("");
+    const files = node.files.sort().map((f) => rowHtml(f, depth)).join("");
+    return dirs + files;
+  }
+
+  const rootNode = buildTree(docs);
+  const treeEl = document.getElementById("tree");
+  treeEl.innerHTML = treeHtml(rootNode);
+
+  function findDirNode(path) {
+    let node = rootNode;
+    for (const part of path.split("/")) {
+      node = node.dirs.get(part);
+      if (!node) return null;
+    }
+    return node;
+  }
+
+  // 当前文档祖先目录自动展开：被置顶目录覆盖时只展开置顶区那份，主树保持原状
+  //（避免上下两份同时铺开 + 滚动跳到主树副本的体验问题）
+  if (docName) {
+    const coveringPins = [...pins].filter((p) => findDirNode(p) && docName.startsWith(p + "/"));
+    if (coveringPins.length) {
+      for (const p of coveringPins) {
+        pinOpenDirs.add(p);
+        for (const dir of ancestorsOf(docName)) {
+          if (dir === p || dir.startsWith(p + "/")) pinOpenDirs.add(dir);
+        }
+      }
+    } else {
+      for (const dir of ancestorsOf(docName)) openDirs.add(dir);
+    }
+  }
+
+  function applyOpenState() {
+    // 主树与置顶区各自独立的展开状态，互不联动
+    for (const dirEl of treeEl.querySelectorAll(".t-dir")) {
+      dirEl.classList.toggle("open", openDirs.has(dirEl.dataset.dir));
+    }
+    for (const dirEl of document.querySelectorAll("#pins .t-dir")) {
+      dirEl.classList.toggle("open", pinOpenDirs.has(dirEl.dataset.dir));
+    }
+  }
+
+  function renderPins() {
+    const pinsEl = document.getElementById("pins");
+    pinsEl.innerHTML = [...pins].map((p) => {
+      const dirNode = findDirNode(p);
+      if (dirNode) {
+        return `<div class="t-dir" data-dir="${p}">
+          ${dirRowHtml(p, `${p}/`, 0)}
+          <div class="kids">${treeHtml(dirNode, 1)}</div></div>`;
+      }
+      return rowHtml(p, 0, { fullLabel: true });
+    }).join("");
+    document.getElementById("pins-sec").style.display = pins.size ? "" : "none";
+    for (const btn of document.querySelectorAll("#panel-files .star")) {
+      const path = btn.closest(".t-row").dataset.path;
+      btn.textContent = pins.has(path) ? "★" : "☆";
+      btn.classList.toggle("on", pins.has(path));
+    }
+    applyOpenState();
+  }
+
+  document.getElementById("sidebar").addEventListener("click", (e) => {
+    const star = e.target.closest(".star");
+    if (star) {
+      e.stopPropagation();
+      const path = star.closest(".t-row").dataset.path;
+      if (pins.has(path)) {
+        pins.delete(path);
+        // 清掉该置顶目录及其后代的展开记忆
+        for (const d of [...pinOpenDirs]) {
+          if (d === path || d.startsWith(path + "/")) pinOpenDirs.delete(d);
+        }
+      } else {
+        pins.add(path);
+        if (findDirNode(path)) pinOpenDirs.add(path); // 新置顶的目录默认展开
+      }
+      localStorage.setItem(PIN_KEY, JSON.stringify([...pins]));
+      localStorage.setItem(PIN_OPEN_KEY, JSON.stringify([...pinOpenDirs]));
+      renderPins();
+      return;
+    }
+    const fileRow = e.target.closest(".t-file");
+    if (fileRow) {
+      location.href = `/d/${encodeURI(fileRow.dataset.path)}`;
+      return;
+    }
+    const dirRow = e.target.closest(".t-dir > .t-row");
+    if (dirRow) {
+      const dir = dirRow.parentElement.dataset.dir;
+      const inPins = !!dirRow.closest("#pins");
+      const set = inPins ? pinOpenDirs : openDirs;
+      if (set.has(dir)) { set.delete(dir); } else { set.add(dir); }
+      localStorage.setItem(inPins ? PIN_OPEN_KEY : OPEN_KEY, JSON.stringify([...set]));
+      applyOpenState();
+    }
+  });
+
+  applyOpenState();
+  renderPins();
+  // 定位当前文档：优先置顶区的副本（在顶部，不把侧边栏滚到主树深处）
+  (document.querySelector("#pins .t-row.active") ?? treeEl.querySelector(".t-row.active"))
+    ?.scrollIntoView({ block: "center" });
+
+  const PANELS = { files: "panel-files", outline: "panel-outline", comments: "panel-comments" };
+  for (const tab of document.querySelectorAll(".stab")) {
+    tab.addEventListener("click", () => {
+      for (const other of document.querySelectorAll(".stab")) other.classList.toggle("on", other === tab);
+      for (const [name, id] of Object.entries(PANELS)) {
+        document.getElementById(id).style.display = tab.dataset.tab === name ? "" : "none";
+      }
+    });
+  }
+
+  let recogito = null;
+  let persistFn = null;
+  let boxAnnotations = [];  // mermaid 框选评论（独立于 Recogito 文本批注，合并持久化）
+  const isBoxAnno = (a) => ((a?.target?.selector) ?? []).some((s) => s?.type === "MermaidBoxSelector");
+  const boxSelOf = (a) => ((a?.target?.selector) ?? []).find((s) => s?.type === "MermaidBoxSelector") ?? {};
+  function renderBoxMarkers() {
+    const content = document.getElementById("content");
+    if (!content) return;
+    content.querySelectorAll(".mermaid").forEach((holder) => {
+      const idx = Number(holder.dataset.diagramIndex);
+      const n = boxAnnotations.filter((a) => (boxSelOf(a).diagramIndex ?? -1) === idx).length;
+      let badge = holder.querySelector(".mm-box-badge");
+      if (n > 0) {
+        if (!badge) {
+          badge = document.createElement("button");
+          badge.className = "mm-box-badge";
+          badge.title = "查看本图评论";
+          badge.addEventListener("click", (e) => { e.stopPropagation(); const svg = holder.querySelector("svg"); if (svg) { window.__openDiagram?.(svg); window.__showDiaComments?.(idx); } });
+          holder.appendChild(badge);
+        }
+        badge.textContent = `💬 ${n}`;
+      } else if (badge) { badge.remove(); }
+    });
+  }
+
+  function quoteOf(a) {
+    const sel = a?.target?.selector ?? [];
+    return (Array.isArray(sel) ? sel : [sel]).find((s) => s?.type === "TextQuoteSelector")?.exact ?? "";
+  }
+
+  // 实时刷新文件树里某文档的批注数 badge（加载时的 /api/tree 只是快照，
+  // 加/删批注后用此函数同步，主树 + 置顶区的同名行都更新）
+  function refreshBadge(path, count) {
+    countByPath.set(path, count);
+    for (const row of document.querySelectorAll(`.t-file[data-path="${CSS.escape(path)}"]`)) {
+      let badge = row.querySelector(".badge");
+      if (count) {
+        if (!badge) {
+          badge = document.createElement("span");
+          badge.className = "badge";
+          row.insertBefore(badge, row.querySelector(".star"));
+        }
+        badge.textContent = `💬${count}`;
+      } else if (badge) {
+        badge.remove();
+      }
+    }
+  }
+
+  function renderComments() {
+    const listEl = document.getElementById("comments-list");
+    const textItems = recogito ? recogito.getAnnotations() : [];
+    const items = [
+      ...textItems.map((a) => ({ a, box: false })),
+      ...boxAnnotations.map((a) => ({ a, box: true })),
+    ];
+    // 侧栏评论顺序 = 文中位置：box 取第 N 个 mermaid holder（不依赖 data 属性的设置时机）、
+    // text 取已渲染的 annotation 元素；按在文档里的垂直位置排序。
+    const mermaidEls = document.querySelectorAll("#content .mermaid");
+    const docTop = (it) => {
+      const el = it.box
+        ? mermaidEls[boxSelOf(it.a).diagramIndex ?? -1]
+        : document.querySelector(`.r6o-annotation[data-id="${CSS.escape(it.a.id)}"]`);
+      return el ? el.getBoundingClientRect().top + window.scrollY : Number.MAX_SAFE_INTEGER;
+    };
+    items.sort((a, b) => docTop(a) - docTop(b));
+    document.getElementById("cmt-count").textContent = items.length || "";
+    if (docName) refreshBadge(docName, items.length);
+    renderBoxMarkers();
+    if (!items.length) {
+      listEl.innerHTML = `<div class="cmt-empty">${docName ? "本文档暂无评论" : "选择文档后显示其评论"}</div>`;
+      return;
+    }
+    listEl.innerHTML = items.map((it, i) => {
+      const comment = (it.a.body ?? []).map((b) => b.value).filter(Boolean).join("\n");
+      const q = it.box ? `▢ 图框：${boxSelOf(it.a).extractedText || "（无文字）"}` : quoteOf(it.a);
+      return `<div class="cmt${it.box ? " cmt-box" : ""}" data-i="${i}"><button class="del" title="删除">✕</button><div class="q">${q}</div><div class="c">${comment}</div></div>`;
+    }).join("");
+    listEl.onclick = (e) => {
+      const card = e.target.closest(".cmt");
+      if (!card) return;
+      const it = items[Number(card.dataset.i)];
+      if (!it) return;
+      if (e.target.closest(".del")) {
+        if (it.box) {
+          boxAnnotations = boxAnnotations.filter((b) => b.id !== it.a.id);
+          persistFn?.();
+          renderComments();
+        } else {
+          recogito.removeAnnotation(it.a);  // 触发 deleteAnnotation → persist + renderComments
+        }
+        return;
+      }
+      if (it.box) {
+        const di = boxSelOf(it.a).diagramIndex ?? 0;
+        document.querySelector(`.mermaid[data-diagram-index="${di}"]`)?.scrollIntoView({ block: "center", behavior: "smooth" });
+      } else {
+        document.querySelector(`.r6o-annotation[data-id="${CSS.escape(it.a.id)}"]`)?.scrollIntoView({ block: "center", behavior: "smooth" });
+      }
+    };
+  }
+
+  const contentEl = document.getElementById("content");
+
+  // 字号统一缩放：覆盖 .markdown-body 根 font-size（内部标题/代码均为 em 相对值，整体等比）
+  const ZOOM_KEY = "docs-viewer:zoom";
+  let zoom = Number(localStorage.getItem(ZOOM_KEY)) || 1;
+  function applyZoom(next) {
+    zoom = Math.round(Math.min(2, Math.max(0.6, next)) * 10) / 10;
+    contentEl.style.fontSize = zoom === 1 ? "" : `${16 * zoom}px`;
+    // 评论弹窗 textarea 等随动（CSS 内 calc(14px * var(--zoom))）
+    document.getElementById("main").style.setProperty("--zoom", String(zoom));
+    document.getElementById("zoom-pct").textContent = `${Math.round(zoom * 100)}%`;
+    if (zoom === 1) localStorage.removeItem(ZOOM_KEY); else localStorage.setItem(ZOOM_KEY, String(zoom));
+  }
+  document.getElementById("zoom-in").addEventListener("click", () => applyZoom(zoom + 0.1));
+  document.getElementById("zoom-out").addEventListener("click", () => applyZoom(zoom - 0.1));
+  document.getElementById("zoom-pct").addEventListener("click", () => applyZoom(1));
+  applyZoom(zoom);
+
+  // —— Cmd/Ctrl+F 页内查找：CSS Custom Highlight API（零 DOM 改动，不干扰划线/图表）——
+  const findBar = document.getElementById("find-bar");
+  const findInput = findBar.querySelector("input");
+  const findCount = document.getElementById("find-count");
+  let findRanges = [];
+  let findIdx = -1;
+
+  function collectMatches(query) {
+    const q = query.toLowerCase();
+    if (!q) return [];
+    // 拼全文 + 记录每个文本节点的偏移区间；跨块元素插 \n 隔断（与浏览器一致：短语可跨行内标签，不跨段落）
+    const walker = document.createTreeWalker(contentEl, NodeFilter.SHOW_TEXT, {
+      acceptNode: (n) => n.parentElement?.closest("script,style")
+        ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT,
+    });
+    const nodes = [];
+    let buf = "";
+    let lastBlock = null;
+    while (walker.nextNode()) {
+      const n = walker.currentNode;
+      const block = n.parentElement.closest("p,li,h1,h2,h3,h4,h5,h6,td,th,pre,blockquote") ?? n.parentElement;
+      if (lastBlock && block !== lastBlock) buf += "\n";
+      lastBlock = block;
+      nodes.push({ node: n, start: buf.length, end: buf.length + n.data.length });
+      buf += n.data;
+    }
+    const hay = buf.toLowerCase();
+    const ranges = [];
+    let i = hay.indexOf(q);
+    let ni = 0;
+    while (i !== -1) {
+      const s = i, e = i + q.length;
+      while (ni < nodes.length && nodes[ni].end <= s) ni++;
+      let ei = ni;
+      while (ei < nodes.length && nodes[ei].end < e) ei++;
+      if (ni < nodes.length && ei < nodes.length) {
+        const r = new Range();
+        r.setStart(nodes[ni].node, s - nodes[ni].start);
+        r.setEnd(nodes[ei].node, e - nodes[ei].start);
+        ranges.push(r);
+      }
+      i = hay.indexOf(q, i + q.length);
+    }
+    return ranges;
+  }
+
+  function paintFind() {
+    if ("highlights" in CSS) {
+      CSS.highlights.delete("find-all");
+      CSS.highlights.delete("find-current");
+      if (findRanges.length) {
+        CSS.highlights.set("find-all", new Highlight(...findRanges));
+        if (findIdx >= 0) CSS.highlights.set("find-current", new Highlight(findRanges[findIdx]));
+      }
+    }
+    findCount.textContent = findInput.value ? `${findRanges.length ? findIdx + 1 : 0}/${findRanges.length}` : "";
+    findCount.classList.toggle("none", !!findInput.value && !findRanges.length);
+  }
+
+  function scrollToCurrent() {
+    if (findIdx < 0) return;
+    const mainEl = document.getElementById("main");
+    const rect = findRanges[findIdx].getBoundingClientRect();
+    mainEl.scrollBy({ top: rect.top - mainEl.getBoundingClientRect().top - mainEl.clientHeight / 2 });
+  }
+
+  function runFind() {
+    findRanges = collectMatches(findInput.value);
+    findIdx = findRanges.length ? 0 : -1;
+    paintFind();
+    scrollToCurrent();
+  }
+
+  function findGo(delta) {
+    if (!findRanges.length) return;
+    findIdx = (findIdx + delta + findRanges.length) % findRanges.length;
+    paintFind();
+    scrollToCurrent();
+  }
+
+  function openFind() {
+    findBar.style.display = "flex";
+    const sel = window.getSelection()?.toString().trim();
+    if (sel) findInput.value = sel; // 浏览器行为：预填选中文字
+    findInput.focus();
+    findInput.select();
+    if (findInput.value) runFind();
+  }
+
+  function closeFind() {
+    findBar.style.display = "none";
+    findRanges = [];
+    findIdx = -1;
+    if ("highlights" in CSS) {
+      CSS.highlights.delete("find-all");
+      CSS.highlights.delete("find-current");
+    }
+  }
+
+  findInput.addEventListener("input", runFind);
+  findInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.preventDefault(); findGo(e.shiftKey ? -1 : 1); }
+    if (e.key === "Escape") { e.stopPropagation(); closeFind(); }
+  });
+  document.getElementById("find-next").addEventListener("click", () => findGo(1));
+  document.getElementById("find-prev").addEventListener("click", () => findGo(-1));
+  document.getElementById("find-close").addEventListener("click", closeFind);
+  document.addEventListener("keydown", (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "f") { e.preventDefault(); openFind(); return; }
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "g" && findBar.style.display === "flex") {
+      e.preventDefault();
+      findGo(e.shiftKey ? -1 : 1);
+      return;
+    }
+    // 全局 Esc 关闭查找条；图表/批注弹窗打开时让位（由既有 handler 先关它们）
+    if (e.key === "Escape" && findBar.style.display === "flex"
+      && !document.getElementById("dia-overlay").classList.contains("show")
+      && document.getElementById("anno-pop").style.display !== "block") {
+      closeFind();
+    }
+  });
+
+  if (!docName) {
+    renderComments();
+    contentEl.innerHTML = `<p style="color:#9b9a92">Choose a document from the sidebar. Select text to add comments. Annotations are embedded in the markdown file as a trailing comment block and can be tracked by git.</p>`;
+  } else {
+    document.getElementById("docname").textContent = docName;
+    document.title = docName;
+
+    const [{ unified }, remarkParse, remarkGfm, remarkRehype, rehypeStringify, mermaidMod] = await Promise.all([
+      import("https://esm.sh/unified@11"),
+      import("https://esm.sh/remark-parse@11"),
+      import("https://esm.sh/remark-gfm@4"),
+      import("https://esm.sh/remark-rehype@11"),
+      import("https://esm.sh/rehype-stringify@10"),
+      import("https://esm.sh/mermaid@11"),
+    ]);
+    const mermaid = mermaidMod.default;
+
+    const md = await (await fetch(`/raw/${encodeURI(docName)}`)).text();
+    const html = String(
+      await unified()
+        .use(remarkParse.default)
+        .use(remarkGfm.default)
+        .use(remarkRehype.default)
+        .use(rehypeStringify.default)
+        .process(md),
+    );
+    contentEl.innerHTML = html;
+
+    // —— 大纲（从渲染后的标题生成，点击跳转 + 滚动高亮当前位置）——
+    const outlineEl = document.getElementById("outline-list");
+    const headings = [...contentEl.querySelectorAll("h1,h2,h3,h4,h5,h6")];
+    headings.forEach((h, i) => { if (!h.id) h.id = `h-${i}`; });
+    if (!headings.length) {
+      outlineEl.innerHTML = `<div class="ol-empty">本文档无标题</div>`;
+    } else {
+      const minLevel = Math.min(...headings.map((h) => Number(h.tagName[1])));
+      outlineEl.innerHTML = headings.map((h, i) => {
+        const level = Number(h.tagName[1]);
+        const text = h.textContent.trim();
+        return `<div class="ol-item ol-h${level}" data-i="${i}" style="padding-left:${12 + (level - minLevel) * 13}px" title="${text.replace(/"/g, "&quot;")}">${text}</div>`;
+      }).join("");
+      outlineEl.onclick = (e) => {
+        const item = e.target.closest(".ol-item");
+        if (item) headings[Number(item.dataset.i)]?.scrollIntoView({ block: "start", behavior: "smooth" });
+      };
+      const mainEl = document.getElementById("main");
+      let spyScheduled = false;
+      mainEl.addEventListener("scroll", () => {
+        if (spyScheduled) return;
+        spyScheduled = true;
+        requestAnimationFrame(() => {
+          spyScheduled = false;
+          const limit = mainEl.getBoundingClientRect().top + 90;
+          let active = 0;
+          headings.forEach((h, i) => { if (h.getBoundingClientRect().top <= limit) active = i; });
+          for (const el of outlineEl.children) {
+            const on = Number(el.dataset.i) === active;
+            el.classList.toggle("active", on);
+            if (on) el.scrollIntoView({ block: "nearest" });
+          }
+        });
+      });
+    }
+
+    for (const block of contentEl.querySelectorAll("code.language-mermaid")) {
+      const pre = block.closest("pre");
+      const holder = document.createElement("pre");
+      holder.className = "mermaid";
+      holder.textContent = block.textContent;
+      pre.replaceWith(holder);
+    }
+    mermaid.initialize({ startOnLoad: false, theme: "default", securityLevel: "loose" });
+    await mermaid.run({ querySelector: ".mermaid" });
+
+    const diaOverlay = document.getElementById("dia-overlay");
+    const diaStage = document.getElementById("dia-stage");
+    const dia = { svg: null, vb0: null, vb: null, drag: null, diagramIndex: -1, boxMode: false };
+
+    function diaSetVb() {
+      if (dia.svg) dia.svg.setAttribute("viewBox", `${dia.vb.x} ${dia.vb.y} ${dia.vb.w} ${dia.vb.h}`);
+    }
+    function diaReset() {
+      if (!dia.vb0) return;
+      dia.vb = { ...dia.vb0 };
+      diaSetVb();
+    }
+    function diaScale() {
+      const r = diaStage.getBoundingClientRect();
+      return Math.min(r.width / dia.vb.w, r.height / dia.vb.h);
+    }
+    function isTextTarget(e) {
+      return e.target instanceof Element && !!e.target.closest("text, tspan, foreignObject");
+    }
+
+    function openDiagram(svg) {
+      const clone = svg.cloneNode(true);
+      clone.removeAttribute("width");
+      clone.style.maxWidth = "none";
+      diaStage.innerHTML = "";
+      diaStage.appendChild(clone);
+      const vbAttr = (clone.getAttribute("viewBox") ?? "").split(/[\s,]+/).map(Number);
+      if (vbAttr.length === 4 && vbAttr.every(Number.isFinite)) {
+        dia.vb0 = { x: vbAttr[0], y: vbAttr[1], w: vbAttr[2], h: vbAttr[3] };
+      } else {
+        const box = clone.getBBox();
+        dia.vb0 = { x: box.x, y: box.y, w: box.width, h: box.height };
+      }
+      dia.svg = clone;
+      dia.diagramIndex = Number(svg.closest(".mermaid")?.dataset.diagramIndex ?? -1);
+      diaReset();
+      diaOverlay.classList.add("show");
+    }
+    function closeDiagram() {
+      diaOverlay.classList.remove("show");
+      diaOverlay.classList.remove("with-comments");
+      diaStage.innerHTML = "";
+      dia.svg = null;
+      dia.drag = null;
+    }
+    // 全屏态侧栏：展示本图的框选评论（badge 点击 = 先全屏图、再侧边评论）
+    function showDiaComments(idx) {
+      const list = boxAnnotations.filter((a) => (boxSelOf(a).diagramIndex ?? -1) === idx);
+      const bodyOf = (a) => (a.body ?? []).map((b) => b.value).filter(Boolean).join("\n");
+      document.getElementById("dia-comments").innerHTML =
+        `<div class="dc-title">本图评论 · ${list.length}</div>` + (list.length
+          ? list.map((a) => `<div class="dc-item"><div class="dc-extract">▢ ${boxSelOf(a).extractedText || "（无文字）"}</div><div class="dc-body">${bodyOf(a) || "（空）"}</div></div>`).join("")
+          : `<div class="dc-empty">本图暂无评论</div>`);
+      diaOverlay.classList.add("with-comments");
+    }
+    window.__openDiagram = openDiagram;
+    window.__showDiaComments = showDiaComments;
+    // 评论栏拖动 resize（改 --dia-cmt-w，左图右评论双栏）
+    const diaResizer = document.getElementById("dia-resizer");
+    let diaResizing = false;
+    diaResizer.addEventListener("mousedown", (e) => { diaResizing = true; diaResizer.classList.add("dragging"); e.preventDefault(); });
+    window.addEventListener("mousemove", (e) => {
+      if (!diaResizing) return;
+      const w = Math.max(220, Math.min(window.innerWidth * 0.6, window.innerWidth - e.clientX));
+      diaOverlay.style.setProperty("--dia-cmt-w", `${w}px`);
+    });
+    window.addEventListener("mouseup", () => { if (diaResizing) { diaResizing = false; diaResizer.classList.remove("dragging"); } });
+
+    diaStage.addEventListener("wheel", (e) => {
+      if (!dia.svg) return;
+      e.preventDefault();
+      const r = diaStage.getBoundingClientRect();
+      const s = diaScale();
+      const ox = (r.width - s * dia.vb.w) / 2;
+      const oy = (r.height - s * dia.vb.h) / 2;
+      const ux = dia.vb.x + (e.clientX - r.left - ox) / s;
+      const uy = dia.vb.y + (e.clientY - r.top - oy) / s;
+      // 指数缩放，幅度正比 deltaY；触控板捏合（ctrlKey）高灵敏；viewBox 缩放 = 矢量级清晰
+      let f = Math.exp(-e.deltaY * (e.ctrlKey ? 0.012 : 0.0024));
+      const total = (dia.vb0.w / dia.vb.w) * f;
+      if (total > 30) f *= 30 / total;
+      if (total < 0.15) f *= 0.15 / total;
+      dia.vb.w /= f;
+      dia.vb.h /= f;
+      // 光标锚定：缩放前后光标指向的内容点不动
+      dia.vb.x = ux - (ux - dia.vb.x) / f;
+      dia.vb.y = uy - (uy - dia.vb.y) / f;
+      diaSetVb();
+    }, { passive: false });
+
+    diaStage.addEventListener("pointerdown", (e) => {
+      if (!dia.svg || e.button !== 0) return;
+      if (dia.boxMode || isTextTarget(e)) return;
+      e.preventDefault();
+      window.getSelection()?.removeAllRanges();
+      dia.drag = { px: e.clientX, py: e.clientY, x: dia.vb.x, y: dia.vb.y, s: diaScale() };
+      diaStage.classList.add("dragging");
+      document.body.style.userSelect = "none";
+      try { diaStage.setPointerCapture(e.pointerId); } catch {}
+    });
+    diaStage.addEventListener("pointermove", (e) => {
+      if (!dia.drag) return;
+      dia.vb.x = dia.drag.x - (e.clientX - dia.drag.px) / dia.drag.s;
+      dia.vb.y = dia.drag.y - (e.clientY - dia.drag.py) / dia.drag.s;
+      diaSetVb();
+    });
+    diaStage.addEventListener("pointerup", () => {
+      dia.drag = null;
+      diaStage.classList.remove("dragging");
+      document.body.style.userSelect = "";
+    });
+    diaStage.addEventListener("dblclick", (e) => {
+      if (!isTextTarget(e)) diaReset();
+    });
+    window.__dia = dia;
+    document.getElementById("dia-close").addEventListener("click", closeDiagram);
+    for (const svg of contentEl.querySelectorAll(".mermaid svg")) {
+      svg.addEventListener("click", () => openDiagram(svg));
+    }
+    window.__closeDiagram = closeDiagram;
+
+    const r = Recogito.init({ content: contentEl, disableEditor: true });
+    recogito = r;
+    window.__recogito = r;
+
+    const pop = document.getElementById("anno-pop");
+    const popTa = pop.querySelector("textarea");
+    let popTarget = null;
+
+    function openPop(anchorRect, value) {
+      const mainEl = document.getElementById("main");
+      const hostRect = mainEl.getBoundingClientRect();
+      pop.style.display = "block";
+      const left = Math.max(8, Math.min(anchorRect.left - hostRect.left + mainEl.scrollLeft, mainEl.clientWidth - 356));
+      pop.style.left = `${left}px`;
+      pop.style.top = `${anchorRect.bottom - hostRect.top + mainEl.scrollTop + 8}px`;
+      popTa.value = value;
+      popTa.focus();
+    }
+
+    function clearSelectionSpans() {
+      for (const span of contentEl.querySelectorAll(".r6o-selection")) {
+        span.replaceWith(...span.childNodes);
+      }
+      contentEl.normalize();
+    }
+    function closePop() {
+      pop.style.display = "none";
+      popTarget = null;
+      window.getSelection()?.removeAllRanges();
+      r.selectAnnotation();
+      clearSelectionSpans();
+    }
+
+    r.on("createSelection", (selection) => {
+      const an = window.getSelection()?.anchorNode;
+      const inMermaid = an && ((an.nodeType === 1 ? an : an.parentElement)?.closest?.(".mermaid"));
+      if (inMermaid) { window.getSelection()?.removeAllRanges(); clearSelectionSpans(); return; }  // 图不支持划线，用放大态框选
+      popTarget = { kind: "selection", payload: selection };
+      const rect = window.getSelection().rangeCount
+        ? window.getSelection().getRangeAt(0).getBoundingClientRect()
+        : contentEl.getBoundingClientRect();
+      openPop(rect, "");
+    });
+
+    r.on("selectAnnotation", (annotation, element) => {
+      popTarget = { kind: "annotation", payload: annotation };
+      const value = (annotation.body ?? []).map((b) => b.value).filter(Boolean).join("\n");
+      openPop(element.getBoundingClientRect(), value);
+    });
+
+    for (const type of ["pointerdown", "mousedown", "mouseup", "click"]) {
+      pop.addEventListener(type, (e) => e.stopPropagation());
+    }
+    pop.querySelector(".cancel").addEventListener("click", closePop);
+    pop.querySelector(".ok").addEventListener("click", () => {
+      if (!popTarget) return closePop();
+      const value = popTa.value.trim();
+      const body = value ? [{ type: "TextualBody", purpose: "commenting", value }] : [];
+      const target = popTarget;
+      popTarget = null;
+      pop.style.display = "none";
+      window.getSelection()?.removeAllRanges();
+      r.selectAnnotation();
+      clearSelectionSpans();
+      if (target.kind === "selection") {
+        if (!value) return;
+        const annotation = { ...target.payload, id: `#${crypto.randomUUID()}`, type: "Annotation", body };
+        r.addAnnotation(annotation);
+      } else {
+        if (!value) {
+          r.removeAnnotation(target.payload);
+        } else {
+          r.addAnnotation({ ...target.payload, body });
+        }
+      }
+      persist();
+      renderComments();
+    });
+    // 点 pop 外（仍在选中态、未写评论）→ 关闭并清掉划线高亮
+    document.getElementById("main").addEventListener("mousedown", (e) => {
+      if (pop.style.display === "block" && !pop.contains(e.target)) closePop();
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape") return;
+      if (document.getElementById("dia-overlay").classList.contains("show")) { window.__closeDiagram?.(); return; }
+      if (pop.style.display === "block") closePop();
+    });
+
+    const annoUrl = `/api/annotations/${encodeURI(docName)}`;
+    let annoBase = null; // 服务端批注块的 updatedAt 基准（乐观并发）
+    try {
+      const saved = await (await fetch(annoUrl)).json();
+      annoBase = saved.updatedAt ?? null;
+      const allLoaded = saved.annotations ?? [];
+      boxAnnotations = allLoaded.filter(isBoxAnno);
+      await r.setAnnotations(allLoaded.filter((a) => !isBoxAnno(a)));
+      renderComments();
+    } catch (err) {
+      console.error("批注加载失败", err);
+    }
+
+    async function applyServerState(state) {
+      annoBase = state.updatedAt ?? null;
+      const allState = state.annotations ?? [];
+      boxAnnotations = allState.filter(isBoxAnno);
+      await r.setAnnotations(allState.filter((a) => !isBoxAnno(a)));
+      renderComments();
+    }
+
+    async function persist() {
+      const annotations = [...r.getAnnotations(), ...boxAnnotations];
+      const res = await fetch(annoUrl, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ annotations, baseUpdatedAt: annoBase }),
+      });
+      if (res.ok) {
+        annoBase = (await res.json()).updatedAt ?? null;
+        return;
+      }
+      if (res.status === 409) {
+        // Annotation state changed elsewhere. Drop this stale full-list write
+        // and re-render from the latest server state.
+        await applyServerState(await res.json());
+        alert("批注已在别处更新，本次操作未保存。页面已同步最新批注，如仍需要请重新操作。");
+        return;
+      }
+      alert("批注保存失败");
+    }
+    persistFn = persist;
+
+    // Refresh annotations when the page regains focus so external edits appear without reload.
+    async function syncFromServer() {
+      if (pop.style.display === "block") return; // 正在编辑批注时不打断
+      try {
+        const cur = await (await fetch(annoUrl)).json();
+        if ((cur.updatedAt ?? null) !== annoBase) await applyServerState(cur);
+      } catch {}
+    }
+    window.addEventListener("focus", syncFromServer);
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) syncFromServer();
+    });
+    r.on("createAnnotation", () => { persist(); renderComments(); });
+    r.on("updateAnnotation", () => { persist(); renderComments(); });
+    r.on("deleteAnnotation", () => { persist(); renderComments(); });
+
+    // —— mermaid 图框选评论：框选区域 → 提取框内 SVG 文字 → 评论（绕开 SVG 锚定）——
+    function extractTextInBox(svg, absBox) {
+      const out = [];
+      for (const el of svg.querySelectorAll("text, .nodeLabel, foreignObject")) {
+        const r2 = el.getBoundingClientRect();
+        const cx = (r2.left + r2.right) / 2, cy = (r2.top + r2.bottom) / 2;
+        if (cx >= absBox.left && cx <= absBox.right && cy >= absBox.top && cy <= absBox.bottom) {
+          const txt = (el.textContent || "").trim().replace(/\s+/g, " ");
+          if (txt) out.push(txt);
+        }
+      }
+      return [...new Set(out)].join(" · ");
+    }
+    contentEl.querySelectorAll(".mermaid").forEach((holder, idx) => {
+      holder.style.position = "relative";
+      holder.dataset.diagramIndex = String(idx);  // 原图不放框选按钮，保持干净；框选在放大态做
+    });
+    renderBoxMarkers();
+
+    // —— 放大态（lightbox）框选评论：框选 dia-stage 内 clone svg → 提取框内文字 → 评论 ——
+    const diaBoxBtn = document.getElementById("dia-boxbtn");
+    const diaBoxRect = document.getElementById("dia-box-rect");
+    const diaBoxPop = document.getElementById("dia-box-pop");
+    const diaBoxExtract = document.getElementById("dia-box-extract");
+    const diaBoxTa = diaBoxPop.querySelector("textarea");
+    let diaBoxStart = null, diaBoxTarget = null;
+    function exitBoxMode() { dia.boxMode = false; diaBoxBtn.classList.remove("active"); diaStage.classList.remove("boxmode"); diaBoxRect.style.display = "none"; }
+    diaBoxBtn.addEventListener("click", () => {
+      dia.boxMode = !dia.boxMode;
+      diaBoxBtn.classList.toggle("active", dia.boxMode);
+      diaStage.classList.toggle("boxmode", dia.boxMode);
+      diaBoxPop.style.display = "none";
+    });
+    diaStage.addEventListener("pointerdown", (e) => {
+      if (!dia.boxMode || e.button !== 0) return;
+      diaBoxStart = { x: e.clientX, y: e.clientY };
+      try { diaStage.setPointerCapture(e.pointerId); } catch {}
+    });
+    diaStage.addEventListener("pointermove", (e) => {
+      if (!dia.boxMode || !diaBoxStart) return;
+      Object.assign(diaBoxRect.style, {
+        left: `${Math.min(diaBoxStart.x, e.clientX)}px`, top: `${Math.min(diaBoxStart.y, e.clientY)}px`,
+        width: `${Math.abs(e.clientX - diaBoxStart.x)}px`, height: `${Math.abs(e.clientY - diaBoxStart.y)}px`, display: "block",
+      });
+    });
+    diaStage.addEventListener("pointerup", (e) => {
+      if (!dia.boxMode || !diaBoxStart) return;
+      const x = Math.min(diaBoxStart.x, e.clientX), y = Math.min(diaBoxStart.y, e.clientY);
+      const w = Math.abs(e.clientX - diaBoxStart.x), h = Math.abs(e.clientY - diaBoxStart.y);
+      diaBoxStart = null;
+      exitBoxMode();
+      if (w < 8 || h < 8 || !dia.svg) return;
+      const text = extractTextInBox(dia.svg, { left: x, top: y, right: x + w, bottom: y + h });
+      diaBoxTarget = { diagramIndex: dia.diagramIndex, extractedText: text };
+      diaBoxExtract.textContent = `框选到：${text || "（框内无文字）"}`;
+      diaBoxPop.style.left = `${Math.max(8, Math.min(x, window.innerWidth - 348))}px`;
+      diaBoxPop.style.top = `${Math.max(8, Math.min(y + h + 8, window.innerHeight - 200))}px`;
+      diaBoxPop.style.display = "block";
+      diaBoxTa.value = ""; diaBoxTa.focus();
+    });
+    for (const ty of ["pointerdown", "mousedown", "click", "wheel"]) diaBoxPop.addEventListener(ty, (ev) => ev.stopPropagation());
+    diaBoxPop.querySelector(".cancel").addEventListener("click", () => { diaBoxPop.style.display = "none"; diaBoxTarget = null; });
+    diaBoxPop.querySelector(".ok").addEventListener("click", () => {
+      const value = diaBoxTa.value.trim();
+      diaBoxPop.style.display = "none";
+      if (value && diaBoxTarget) {
+        boxAnnotations.push({
+          id: `#box-${crypto.randomUUID()}`, type: "Annotation",
+          body: [{ type: "TextualBody", purpose: "commenting", value }],
+          target: { selector: [{ type: "MermaidBoxSelector", diagramIndex: diaBoxTarget.diagramIndex, extractedText: diaBoxTarget.extractedText }] },
+        });
+        persist(); renderComments();
+      }
+      diaBoxTarget = null;
+    });
+  }
+</script>
+</body>

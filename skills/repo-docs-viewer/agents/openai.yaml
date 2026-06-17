@@ -1,0 +1,4 @@
+interface:
+  display_name: "Repo Docs Viewer"
+  short_description: "Install and use a portable markdown docs viewer"
+  default_prompt: "Use $repo-docs-viewer to install or validate a local markdown docs viewer for this repository."
