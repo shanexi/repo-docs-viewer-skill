@@ -32,7 +32,7 @@ Rendered markdown:
 
 - Sidebar tree for markdown files
 - Browser-rendered markdown and Mermaid
-- Obsidian image embeds and `==highlights==`
+- Obsidian image embeds, click-to-zoom images, and `==highlights==`
 - Embedded markdown annotations that can be tracked by git
 - Desktop preview flow for Codex Desktop and Claude Code Desktop
 

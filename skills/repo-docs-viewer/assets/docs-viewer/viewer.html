@@ -47,11 +47,20 @@
   #pins .t-row .name { font-size: 12px; }
   .markdown-body { background: #fff; }
   .markdown-body mark { background: #fff3a3; border-radius: 3px; padding: 0 .12em; color: inherit; }
-  .markdown-body img { max-width: 100%; height: auto; }
+  .markdown-body img { max-width: 100%; height: auto; cursor: zoom-in; }
   .markdown-body img.obsidian-embed { display: block; margin: 10px 0; }
   .missing-asset { display: inline-block; border: 1px dashed #d9d8d3; border-radius: 6px; padding: 6px 9px; color: #8a5a44; background: #faf6f0; font: 12px/1.4 system-ui; }
   .markdown-body pre.mermaid { background: transparent; text-align: center; }
   .markdown-body pre.mermaid svg { cursor: zoom-in; }
+  #img-overlay { position: fixed; inset: 0; z-index: 120; background: rgba(20,19,17,.9); display: none; }
+  #img-overlay.show { display: block; }
+  #img-stage { position: absolute; inset: 0; overflow: hidden; background: #111; }
+  #img-stage.dragging img { cursor: grabbing; }
+  #img-stage img { position: absolute; top: 0; left: 0; max-width: none; max-height: none; transform-origin: 0 0; cursor: grab; user-select: none; will-change: transform; }
+  #img-close { position: absolute; top: 14px; right: 16px; z-index: 122; border: 1px solid #d9d8d3; background: #fff; color: #56554e; border-radius: 8px; font: 14px system-ui; padding: 4px 12px; cursor: pointer; }
+  #img-close:hover { background: #f0eee5; }
+  #img-caption { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); max-width: min(760px, calc(100vw - 32px)); z-index: 121; color: #8e8d86; font: 12px/1.4 system-ui; background: rgba(255,255,255,.88); padding: 5px 12px; border-radius: 12px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #img-hint { position: absolute; top: 16px; left: 50%; transform: translateX(-50%); z-index: 121; color: #8e8d86; font: 12px system-ui; background: rgba(255,255,255,.88); padding: 4px 12px; border-radius: 12px; }
   #dia-overlay { position: fixed; inset: 0; z-index: 100; background: rgba(20,19,17,.82); display: none; --dia-cmt-w: 340px; }
   #dia-overlay.show { display: block; }
   #dia-stage { position: absolute; inset: 0; background: #fff; overflow: hidden; }
@@ -146,6 +155,7 @@
     <div id="find-bar" style="display:none"><input placeholder="查找" spellcheck="false"><span id="find-count"></span><button id="find-prev" title="上一个 (Shift+Enter)">∧</button><button id="find-next" title="下一个 (Enter)">∨</button><button id="find-close" title="关闭 (Esc)">✕</button></div>
   </div>
 </div>
+<div id="img-overlay"><div id="img-stage"><img id="img-full" alt=""></div><button id="img-close">✕ 关闭</button><div id="img-hint">滚轮缩放 · 拖拽平移 · 双击复位 · Esc 关闭</div><div id="img-caption"></div></div>
 <div id="dia-overlay"><div id="dia-stage"></div><div id="dia-resizer"></div><div id="dia-comments"></div><div id="dia-box-rect"></div><button id="dia-boxbtn" title="框选图中区域评论">▢ 框选评论</button><button id="dia-close">✕ 关闭</button><div id="dia-hint">滚轮缩放 · 拖拽平移 · 「▢ 框选评论」框选区域 · 双击复位 · Esc 关闭</div><div id="dia-box-pop"><div id="dia-box-extract"></div><textarea placeholder="评论这块区域…"></textarea><div class="foot"><button class="cancel">取消</button><button class="ok">确定</button></div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/@recogito/recogito-js@1.8.4/dist/recogito.min.js"></script>
 <script type="module">
@@ -283,8 +293,106 @@
         missing.textContent = `Missing image: ${label}`;
         img.replaceWith(missing);
       }, { once: true });
+      img.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        openImage(img);
+      });
     }
   }
+
+  const imgOverlay = document.getElementById("img-overlay");
+  const imgStage = document.getElementById("img-stage");
+  const imgFull = document.getElementById("img-full");
+  const imgCaption = document.getElementById("img-caption");
+  const imgState = { x: 0, y: 0, scale: 1, fitScale: 1, drag: null };
+
+  function applyImageTransform() {
+    imgFull.style.transform = `translate(${imgState.x}px, ${imgState.y}px) scale(${imgState.scale})`;
+  }
+
+  function fitImage() {
+    const r = imgStage.getBoundingClientRect();
+    const w = imgFull.naturalWidth || imgFull.width || 1;
+    const h = imgFull.naturalHeight || imgFull.height || 1;
+    imgState.fitScale = Math.min((r.width - 48) / w, (r.height - 72) / h, 1);
+    imgState.scale = Math.max(0.05, imgState.fitScale);
+    imgState.x = (r.width - w * imgState.scale) / 2;
+    imgState.y = (r.height - h * imgState.scale) / 2;
+    applyImageTransform();
+  }
+
+  function openImage(img) {
+    const src = img.currentSrc || img.src || img.getAttribute("src");
+    if (!src) return;
+    imgCaption.textContent = img.getAttribute("alt") || src.split("/").pop() || "image";
+    imgFull.src = src;
+    imgFull.alt = imgCaption.textContent;
+    imgOverlay.classList.add("show");
+    if (imgFull.complete && imgFull.naturalWidth) fitImage();
+    else imgFull.onload = fitImage;
+  }
+
+  function closeImage() {
+    imgOverlay.classList.remove("show");
+    imgStage.classList.remove("dragging");
+    imgFull.onload = null;
+    imgFull.removeAttribute("src");
+    imgState.drag = null;
+  }
+
+  function zoomImageAt(clientX, clientY, factor) {
+    if (!imgOverlay.classList.contains("show")) return;
+    const r = imgStage.getBoundingClientRect();
+    const px = clientX - r.left;
+    const py = clientY - r.top;
+    const oldScale = imgState.scale;
+    const nextScale = Math.max(imgState.fitScale * 0.5, Math.min(8, oldScale * factor));
+    const ratio = nextScale / oldScale;
+    imgState.x = px - (px - imgState.x) * ratio;
+    imgState.y = py - (py - imgState.y) * ratio;
+    imgState.scale = nextScale;
+    applyImageTransform();
+  }
+
+  document.getElementById("img-close").addEventListener("click", closeImage);
+  imgOverlay.addEventListener("click", (e) => {
+    if (e.target === imgOverlay || e.target === imgStage) closeImage();
+  });
+  imgStage.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    zoomImageAt(e.clientX, e.clientY, e.deltaY < 0 ? 1.15 : 1 / 1.15);
+  }, { passive: false });
+  imgStage.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0 || e.target !== imgFull) return;
+    imgState.drag = { id: e.pointerId, x: e.clientX, y: e.clientY, startX: imgState.x, startY: imgState.y };
+    imgStage.classList.add("dragging");
+    imgStage.setPointerCapture(e.pointerId);
+  });
+  imgStage.addEventListener("pointermove", (e) => {
+    if (!imgState.drag || imgState.drag.id !== e.pointerId) return;
+    imgState.x = imgState.drag.startX + e.clientX - imgState.drag.x;
+    imgState.y = imgState.drag.startY + e.clientY - imgState.drag.y;
+    applyImageTransform();
+  });
+  imgStage.addEventListener("pointerup", (e) => {
+    if (!imgState.drag || imgState.drag.id !== e.pointerId) return;
+    imgState.drag = null;
+    imgStage.classList.remove("dragging");
+  });
+  imgStage.addEventListener("dblclick", (e) => {
+    e.preventDefault();
+    fitImage();
+  });
+  window.addEventListener("resize", () => {
+    if (imgOverlay.classList.contains("show")) fitImage();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && imgOverlay.classList.contains("show")) {
+      e.preventDefault();
+      closeImage();
+    }
+  });
 
   const PIN_OPEN_KEY = "docs-viewer:pins-open";
   const pins = new Set(JSON.parse(localStorage.getItem(PIN_KEY) ?? "[]"));

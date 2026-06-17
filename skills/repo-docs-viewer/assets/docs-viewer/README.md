@@ -8,6 +8,7 @@ node tools/docs-viewer/server.mjs     # http://localhost:4642
 - One document per URL: `/d/<relative-path>.md`.
 - Browser-rendered markdown via unified, remark-parse, remark-gfm, and remark-rehype loaded from esm.sh.
 - Obsidian-style image embeds such as `![[Pasted image.png]]`.
+- Click-to-zoom image preview with wheel zoom and drag pan.
 - Obsidian-style highlights such as `==important text==`.
 - Mermaid fenced blocks render with mermaid@11.
 - Text comments use RecogitoJS and the W3C Web Annotation model.
