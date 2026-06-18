@@ -964,6 +964,17 @@
     findCount.classList.toggle("none", !!findInput.value && !findRanges.length);
   }
 
+  function topbarOffset() {
+    return (document.querySelector(".topbar")?.getBoundingClientRect().height ?? 0) + 12;
+  }
+
+  function scrollMainToElement(el, { behavior = "smooth" } = {}) {
+    if (!el) return;
+    const mainRect = mainEl.getBoundingClientRect();
+    const rect = el.getBoundingClientRect();
+    mainEl.scrollBy({ top: rect.top - mainRect.top - topbarOffset(), behavior });
+  }
+
   function scrollToCurrent() {
     if (findIdx < 0) return;
     const mainEl = document.getElementById("main");
@@ -1074,7 +1085,7 @@
       }).join("");
       outlineEl.onclick = (e) => {
         const item = e.target.closest(".ol-item");
-        if (item) headings[Number(item.dataset.i)]?.scrollIntoView({ block: "start", behavior: "smooth" });
+        if (item) scrollMainToElement(headings[Number(item.dataset.i)]);
       };
       const mainEl = document.getElementById("main");
       let spyScheduled = false;
