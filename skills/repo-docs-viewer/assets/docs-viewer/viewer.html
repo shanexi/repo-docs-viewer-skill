@@ -34,6 +34,21 @@
   #pin-peek .t-row { padding: 4px 10px; font-size: 13px; line-height: 1.6; }
   #pin-peek .chev, #pin-peek .star { display: none; }
   #pin-peek .badge { margin-left: 8px; }
+  #outline-peek-trigger { position: fixed; top: 62px; left: 26px; z-index: 64; width: 44px; height: 44px; display: none; flex-direction: column; justify-content: center; align-items: flex-start; gap: 11px; border: none; border-radius: 10px; background: transparent; cursor: pointer; padding: 0 6px; }
+  .app.no-side.has-outline #outline-peek-trigger { display: flex; }
+  #outline-peek-trigger:hover, #outline-peek-trigger:focus-visible { background: rgba(240,238,229,.75); outline: none; }
+  #outline-peek-trigger span { display: block; height: 4px; border-radius: 999px; background: #c8c7c2; }
+  #outline-peek-trigger span:first-child { width: 20px; }
+  #outline-peek-trigger span:last-child { width: 32px; background: #2f2e2a; }
+  #outline-peek { position: fixed; top: 52px; left: 20px; z-index: 66; width: min(560px, calc(100vw - 40px)); max-height: min(420px, calc(100vh - 70px)); overflow-y: auto; display: none; background: rgba(255,255,255,.98); border: 1px solid rgba(0,0,0,.1); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.16); padding: 8px; }
+  .app.no-side #outline-peek.show,
+  .app.no-side.has-outline #main:has(#outline-peek-trigger:hover) #outline-peek,
+  .app.no-side.has-outline #outline-peek-trigger:focus + #outline-peek,
+  .app.no-side.has-outline #outline-peek:hover { display: block; }
+  #outline-peek .ol-item { display: flex; align-items: center; gap: 14px; min-height: 40px; border-left: none; border-radius: 8px; padding-top: 7px; padding-bottom: 7px; font-size: 15px; line-height: 1.3; }
+  #outline-peek .ol-item::before { content: ""; flex: none; width: 22px; height: 4px; border-radius: 999px; background: #5e5d57; }
+  #outline-peek .ol-item.active { background: #efeeea; color: #1a1915; }
+  #outline-peek .ol-item.active::before { background: #2f2e2a; }
   .side-head { padding: 2px 14px 8px; font: 500 13px system-ui; color: #3b3a35; display: flex; justify-content: space-between; align-items: baseline; }
   .side-head a { color: #3b3a35; text-decoration: none; }
   .side-head .n { color: #9b9a92; font-size: 11px; font-weight: 400; }
@@ -167,6 +182,8 @@
     <div class="topbar"><button id="toggle" title="收起/展开目录">☰</button><span id="docname">选择左侧文档</span>
       <div class="zoom-ctl"><button id="zoom-out" title="缩小字号">A−</button><button id="zoom-pct" title="点击复原 100%">100%</button><button id="zoom-in" title="放大字号">A+</button></div></div>
     <div id="pin-peek" role="navigation" aria-label="置顶"><div class="pin-peek-head">置顶</div><div id="pin-peek-list"></div></div>
+    <button id="outline-peek-trigger" type="button" title="大纲" aria-label="大纲"><span></span><span></span></button>
+    <div id="outline-peek" role="navigation" aria-label="大纲"><div id="outline-peek-list"></div></div>
     <article id="content" class="markdown-body" style="padding: 10px 24px 100px"></article>
     <div id="anno-pop"><div id="box-extract"></div><textarea placeholder="写下评论…"></textarea><div class="foot"><button class="cancel">取消</button><button class="ok">确定</button></div></div>
     <div id="sel-tools" role="toolbar" aria-label="选中文本操作"><button id="sel-copy" type="button" title="复制选中文本" aria-label="复制选中文本"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></button><button id="sel-comment" type="button" title="评论选中文本" aria-label="评论选中文本"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path></svg></button></div>
@@ -187,17 +204,23 @@
   const mainEl = document.getElementById("main");
   const toggleBtn = document.getElementById("toggle");
   const pinPeek = document.getElementById("pin-peek");
+  const outlinePeek = document.getElementById("outline-peek");
+  const outlinePeekTrigger = document.getElementById("outline-peek-trigger");
   let pinPeekTimer = null;
+  let outlinePeekTimer = null;
+  let outlinePeekPinned = false;
   if (localStorage.getItem(SIDE_KEY) === "0") app.classList.add("no-side");
   toggleBtn.addEventListener("click", () => {
     app.classList.toggle("no-side");
     localStorage.setItem(SIDE_KEY, app.classList.contains("no-side") ? "0" : "1");
     pinPeek.classList.remove("show");
+    hideOutlinePeek();
   });
 
   function showPinPeek() {
     if (!app.classList.contains("no-side")) return;
     clearTimeout(pinPeekTimer);
+    hideOutlinePeek();
     pinPeek.classList.add("show");
   }
 
@@ -216,6 +239,51 @@
   }
   pinPeek.addEventListener("focusin", showPinPeek);
   pinPeek.addEventListener("focusout", hidePinPeekSoon);
+
+  function showOutlinePeek({ pin = false } = {}) {
+    if (!app.classList.contains("no-side") || !app.classList.contains("has-outline")) return;
+    clearTimeout(outlinePeekTimer);
+    if (pin) outlinePeekPinned = true;
+    pinPeek.classList.remove("show");
+    outlinePeek.classList.add("show");
+  }
+
+  function hideOutlinePeek() {
+    clearTimeout(outlinePeekTimer);
+    outlinePeekPinned = false;
+    outlinePeek.classList.remove("show");
+  }
+
+  function hideOutlinePeekSoon() {
+    clearTimeout(outlinePeekTimer);
+    if (outlinePeekPinned) return;
+    outlinePeekTimer = setTimeout(() => outlinePeek.classList.remove("show"), 180);
+  }
+
+  for (const el of [outlinePeekTrigger, outlinePeek]) {
+    for (const type of ["pointerenter", "pointerover", "mouseenter", "mouseover", "focus"]) {
+      el.addEventListener(type, showOutlinePeek);
+    }
+    for (const type of ["pointerleave", "mouseleave", "blur"]) {
+      el.addEventListener(type, hideOutlinePeekSoon);
+    }
+  }
+  function pinOutlinePeek(e) {
+    e.stopPropagation();
+    if (!app.classList.contains("no-side") || !app.classList.contains("has-outline")) return;
+    showOutlinePeek({ pin: true });
+  }
+  for (const type of ["pointerdown", "mousedown", "click"]) {
+    outlinePeekTrigger.addEventListener(type, pinOutlinePeek, { capture: true });
+  }
+  outlinePeek.addEventListener("click", (e) => e.stopPropagation());
+  outlinePeek.addEventListener("focusin", showOutlinePeek);
+  outlinePeek.addEventListener("focusout", hideOutlinePeekSoon);
+  document.addEventListener("click", (e) => {
+    if (!outlinePeekPinned) return;
+    if (outlinePeek.contains(e.target) || outlinePeekTrigger.contains(e.target)) return;
+    hideOutlinePeek();
+  });
 
   // 侧边栏拖拽 resize（双击复位 300px，宽度记 localStorage）
   const sidebarEl = document.getElementById("sidebar");
@@ -1039,6 +1107,9 @@
   });
 
   if (!docName) {
+    app.classList.remove("has-outline");
+    hideOutlinePeek();
+    document.getElementById("outline-peek-list").innerHTML = "";
     renderComments();
     contentEl.innerHTML = `<p style="color:#9b9a92">Choose a document from the sidebar. Select text to add comments. Annotations are embedded in the markdown file as a trailing comment block and can be tracked by git.</p>`;
   } else {
@@ -1072,38 +1143,58 @@
 
     // —— 大纲（从渲染后的标题生成，点击跳转 + 滚动高亮当前位置）——
     const outlineEl = document.getElementById("outline-list");
+    const outlinePeekList = document.getElementById("outline-peek-list");
     const headings = [...contentEl.querySelectorAll("h1,h2,h3,h4,h5,h6")];
     headings.forEach((h, i) => { if (!h.id) h.id = `h-${i}`; });
     if (!headings.length) {
+      app.classList.remove("has-outline");
+      hideOutlinePeek();
       outlineEl.innerHTML = `<div class="ol-empty">本文档无标题</div>`;
+      outlinePeekList.innerHTML = `<div class="ol-empty">本文档无标题</div>`;
     } else {
+      app.classList.add("has-outline");
       const minLevel = Math.min(...headings.map((h) => Number(h.tagName[1])));
-      outlineEl.innerHTML = headings.map((h, i) => {
+      const outlineHtml = headings.map((h, i) => {
         const level = Number(h.tagName[1]);
         const text = h.textContent.trim();
         return `<div class="ol-item ol-h${level}" data-i="${i}" style="padding-left:${12 + (level - minLevel) * 13}px" title="${text.replace(/"/g, "&quot;")}">${text}</div>`;
       }).join("");
-      outlineEl.onclick = (e) => {
+      outlineEl.innerHTML = outlineHtml;
+      outlinePeekList.innerHTML = outlineHtml;
+      const handleOutlineClick = (e, { closePeek = false } = {}) => {
         const item = e.target.closest(".ol-item");
-        if (item) scrollMainToElement(headings[Number(item.dataset.i)]);
+        if (!item) return;
+        scrollMainToElement(headings[Number(item.dataset.i)]);
+        if (closePeek) {
+          hideOutlinePeek();
+          outlinePeekTrigger.blur();
+        }
       };
+      outlineEl.onclick = handleOutlineClick;
+      outlinePeekList.onclick = (e) => handleOutlineClick(e, { closePeek: true });
       const mainEl = document.getElementById("main");
       let spyScheduled = false;
+      const syncOutlineActive = () => {
+        const limit = mainEl.getBoundingClientRect().top + 90;
+        let active = 0;
+        headings.forEach((h, i) => { if (h.getBoundingClientRect().top <= limit) active = i; });
+        for (const list of [outlineEl, outlinePeekList]) {
+          for (const el of list.children) {
+            const on = Number(el.dataset.i) === active;
+            el.classList.toggle("active", on);
+            if (on && (list === outlineEl || outlinePeek.classList.contains("show"))) el.scrollIntoView({ block: "nearest" });
+          }
+        }
+      };
       mainEl.addEventListener("scroll", () => {
         if (spyScheduled) return;
         spyScheduled = true;
         requestAnimationFrame(() => {
           spyScheduled = false;
-          const limit = mainEl.getBoundingClientRect().top + 90;
-          let active = 0;
-          headings.forEach((h, i) => { if (h.getBoundingClientRect().top <= limit) active = i; });
-          for (const el of outlineEl.children) {
-            const on = Number(el.dataset.i) === active;
-            el.classList.toggle("active", on);
-            if (on) el.scrollIntoView({ block: "nearest" });
-          }
+          syncOutlineActive();
         });
       });
+      syncOutlineActive();
     }
 
     for (const block of contentEl.querySelectorAll("code.language-mermaid")) {
