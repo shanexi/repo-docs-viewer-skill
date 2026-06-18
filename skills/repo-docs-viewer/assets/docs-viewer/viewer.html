@@ -1691,13 +1691,20 @@
     return (document.querySelector(".topbar")?.getBoundingClientRect().height ?? 0) + 12;
   }
 
+  const LONG_SCROLL_THRESHOLD_SCREENS = 1.4;
+  const LONG_SCROLL_TAIL_PX = 320;
   function scrollMainToElement(el, { behavior = "smooth" } = {}) {
     if (!el) return;
     const mainRect = mainEl.getBoundingClientRect();
     const rect = el.getBoundingClientRect();
     const top = rect.top - mainRect.top - topbarOffset();
-    const nextBehavior = behavior === "smooth" && Math.abs(top) > mainEl.clientHeight * 1.4 ? "auto" : behavior;
-    mainEl.scrollBy({ top, behavior: nextBehavior });
+    if (behavior === "smooth" && Math.abs(top) > mainEl.clientHeight * LONG_SCROLL_THRESHOLD_SCREENS) {
+      const tail = Math.sign(top) * Math.min(Math.abs(top), LONG_SCROLL_TAIL_PX);
+      mainEl.scrollBy({ top: top - tail, behavior: "auto" });
+      requestAnimationFrame(() => mainEl.scrollBy({ top: tail, behavior: "smooth" }));
+      return;
+    }
+    mainEl.scrollBy({ top, behavior });
   }
 
   function scrollToCurrent() {
