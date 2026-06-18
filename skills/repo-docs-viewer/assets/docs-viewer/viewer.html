@@ -111,9 +111,8 @@
   #dia-resizer { position: absolute; top: 0; bottom: 0; right: var(--dia-cmt-w); width: 9px; margin-right: -4px; cursor: col-resize; z-index: 104; display: none; }
   #dia-overlay.with-comments #dia-resizer { display: block; }
   #dia-resizer:hover, #dia-resizer.dragging { background: rgba(217,119,87,.35); }
-  /* with-comments 时关闭/框选/提示避让到左侧图区，不被评论栏遮住 */
-  #dia-overlay.with-comments #dia-close { right: calc(16px + var(--dia-cmt-w)); }
-  #dia-overlay.with-comments #dia-boxbtn { right: calc(96px + var(--dia-cmt-w)); }
+  /* with-comments 时顶部工具和提示避让到左侧图区，不被评论栏遮住 */
+  #dia-overlay.with-comments #dia-actions { right: calc(16px + var(--dia-cmt-w)); max-width: calc(100vw - var(--dia-cmt-w) - 32px); }
   #dia-overlay.with-comments #dia-hint { left: calc(50% - var(--dia-cmt-w) / 2); }
   #dia-comments .dc-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
   #dia-comments .dc-title { font: 600 13px system-ui; color: #56554e; }
@@ -127,7 +126,8 @@
   #dia-stage svg { width: 100%; height: 100%; display: block; cursor: grab; user-select: none; }
   #dia-stage.dragging svg { cursor: grabbing; }
   #dia-stage svg text, #dia-stage svg tspan, #dia-stage svg foreignObject, #dia-stage svg foreignObject * { user-select: text; cursor: text; }
-  #dia-close { position: absolute; top: 14px; right: 16px; z-index: 101; border: 1px solid #d9d8d3; background: #fff; color: #56554e; border-radius: 8px; font: 14px system-ui; padding: 4px 12px; cursor: pointer; }
+  #dia-actions { position: absolute; top: 14px; right: 16px; z-index: 106; display: flex; align-items: center; justify-content: flex-end; gap: 8px; max-width: calc(100vw - 32px); }
+  #dia-close { position: static; flex: none; border: 1px solid #d9d8d3; background: #fff; color: #56554e; border-radius: 8px; font: 14px system-ui; padding: 4px 12px; cursor: pointer; }
   #dia-close:hover { background: #f0eee5; }
   #dia-hint { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); color: #8e8d86; font: 12px system-ui; background: rgba(255,255,255,.85); padding: 4px 12px; border-radius: 12px; }
   .r6o-annotation, .r6o-selection { background: rgba(217, 119, 87, .16); border-bottom: 2px solid rgba(217, 119, 87, .65); cursor: pointer; }
@@ -172,15 +172,15 @@
   .ol-empty { padding: 10px 14px; color: #9b9a92; font: 12px system-ui; font-size: clamp(10px, calc(12px * var(--zoom, 1)), 18px); }
   .mm-box-badge { position: absolute; top: 6px; right: 6px; z-index: 5; border: 1px solid #e3a886; background: rgba(255,246,240,.95); border-radius: 6px; font: 11px system-ui; color: #b08968; padding: 2px 8px; cursor: pointer; }
   .mm-box-badge:hover { background: #f7ece3; }
-  #dia-boxbtn { position: absolute; top: 14px; right: 96px; z-index: 101; border: 1px solid #d9d8d3; background: #fff; color: #56554e; border-radius: 8px; font: 14px system-ui; padding: 4px 12px; cursor: pointer; }
+  #dia-boxbtn { position: static; flex: 1 1 auto; min-width: 0; border: 1px solid #d9d8d3; background: #fff; color: #56554e; border-radius: 8px; font: 14px system-ui; padding: 4px 12px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   #dia-boxbtn:hover { background: #f0eee5; }
   #dia-boxbtn.active { background: #d97757; border-color: #d97757; color: #fff; }
-  #dia-commentbtn { position: absolute; top: 14px; right: 216px; z-index: 101; display: none; border: 1px solid #e3a886; background: rgba(255,246,240,.96); color: #8a5a44; border-radius: 8px; font: 13px system-ui; padding: 4px 9px; cursor: pointer; }
+  #dia-commentbtn { position: static; flex: none; display: none; border: 1px solid #e3a886; background: rgba(255,246,240,.96); color: #8a5a44; border-radius: 8px; font: 13px system-ui; padding: 4px 9px; cursor: pointer; }
   #dia-commentbtn:hover { background: #f7ece3; }
-  #dia-overlay.show.has-comments:not(.with-comments) #dia-commentbtn { display: block; }
+  #dia-overlay.show.has-comments:not(.with-comments) #dia-commentbtn { display: inline-flex; align-items: center; justify-content: center; }
   #dia-stage.boxmode svg { cursor: crosshair !important; }
-  #dia-box-rect { position: fixed; display: none; border: 1.5px solid #d97757; background: rgba(217,119,87,.16); pointer-events: none; z-index: 102; }
-  #dia-box-pop { position: fixed; z-index: 103; width: 340px; background: #fff; border: 1px solid rgba(0,0,0,.12); border-radius: 12px; box-shadow: 0 8px 28px rgba(0,0,0,.22); overflow: hidden; display: none; }
+  #dia-box-rect { position: fixed; display: none; border: 1.5px solid #d97757; background: rgba(217,119,87,.16); pointer-events: none; z-index: 105; }
+  #dia-box-pop { position: fixed; z-index: 107; width: 340px; background: #fff; border: 1px solid rgba(0,0,0,.12); border-radius: 12px; box-shadow: 0 8px 28px rgba(0,0,0,.22); overflow: hidden; display: none; }
   #dia-box-extract { background: #faf6f0; border-bottom: 1px solid rgba(0,0,0,.06); padding: 8px 12px; font: 12px/1.5 system-ui; color: #8a5a44; max-height: 90px; overflow-y: auto; white-space: pre-wrap; }
   #dia-box-pop textarea { width: 100%; min-height: 64px; border: none; outline: none; resize: vertical; font: 14px/1.6 -apple-system, "PingFang SC", sans-serif; padding: 10px 12px 4px; color: #1a1915; }
   #dia-box-pop .foot { background: #faf9f5; border-top: 1px solid rgba(0,0,0,.06); padding: 8px 10px; display: flex; gap: 8px; justify-content: flex-end; }
@@ -486,20 +486,21 @@
     padding: 12px max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
   }
   html[data-view="mobile"] #dia-resizer { display: none !important; }
-  html[data-view="mobile"] #dia-overlay.with-comments #dia-close { right: max(10px, env(safe-area-inset-right)); }
-  html[data-view="mobile"] #dia-overlay.with-comments #dia-boxbtn { right: calc(max(10px, env(safe-area-inset-right)) + 100px); }
+  html[data-view="mobile"] #dia-actions {
+    top: max(10px, env(safe-area-inset-top));
+    right: max(10px, env(safe-area-inset-right));
+    max-width: calc(100vw - max(20px, env(safe-area-inset-left) + env(safe-area-inset-right) + 20px));
+    gap: 6px;
+  }
+  html[data-view="mobile"] #dia-overlay.with-comments #dia-actions { right: max(10px, env(safe-area-inset-right)); max-width: calc(100vw - 20px); }
   html[data-view="mobile"] #dia-overlay.with-comments #dia-hint { left: 50%; }
   html[data-view="mobile"] #dia-boxbtn {
-    top: max(10px, env(safe-area-inset-top));
-    right: calc(max(10px, env(safe-area-inset-right)) + 100px);
     max-width: min(48vw, 190px);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
   html[data-view="mobile"] #dia-commentbtn {
-    top: max(10px, env(safe-area-inset-top));
-    right: calc(max(10px, env(safe-area-inset-right)) + 246px);
     min-width: 48px;
   }
   html[data-view="mobile"] #dia-hint {
@@ -543,7 +544,7 @@
   </div>
 </div>
 <div id="img-overlay"><div id="img-stage"><img id="img-full" alt=""></div><button id="img-close">✕ 关闭</button><div id="img-hint">滚轮缩放 · 拖拽平移 · 双击复位 · Esc 关闭</div><div id="img-caption"></div></div>
-<div id="dia-overlay"><div id="dia-stage"></div><div id="dia-resizer"></div><div id="dia-comments"></div><div id="dia-box-rect"></div><button id="dia-commentbtn" title="查看本图评论">💬</button><button id="dia-boxbtn" title="框选图中区域评论">▢ 框选评论</button><button id="dia-close">✕ 关闭</button><div id="dia-hint">滚轮缩放 · 拖拽平移 · 「▢ 框选评论」框选区域 · 双击复位 · Esc 关闭</div><div id="dia-box-pop"><div id="dia-box-extract"></div><textarea placeholder="评论这块区域…"></textarea><div class="foot"><button class="cancel">取消</button><button class="ok">确定</button></div></div></div>
+<div id="dia-overlay"><div id="dia-stage"></div><div id="dia-resizer"></div><div id="dia-comments"></div><div id="dia-box-rect"></div><div id="dia-actions"><button id="dia-commentbtn" title="查看本图评论">💬</button><button id="dia-boxbtn" title="框选图中区域评论">▢ 框选评论</button><button id="dia-close">✕ 关闭</button></div><div id="dia-hint">滚轮缩放 · 拖拽平移 · 「▢ 框选评论」框选区域 · 双击复位 · Esc 关闭</div><div id="dia-box-pop"><div id="dia-box-extract"></div><textarea placeholder="评论这块区域…"></textarea><div class="foot"><button class="cancel">取消</button><button class="ok">确定</button></div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/@recogito/recogito-js@1.8.4/dist/recogito.min.js"></script>
 <script type="module">
   const app = document.getElementById("app");
@@ -831,6 +832,10 @@
     document.querySelector("#dia-box-pop .cancel").textContent = t("cancel");
     document.querySelector("#dia-box-pop .ok").textContent = t("ok");
     applyTheme(themeMode);
+  }
+  function isEditingTarget(target = document.activeElement) {
+    const el = target instanceof Element ? target : target?.parentElement;
+    return !!el?.closest?.("input, textarea, select, [contenteditable=''], [contenteditable='true'], #anno-pop, #find-bar, #dia-box-pop");
   }
   langToggle.addEventListener("click", () => {
     lang = lang === "zh" ? "en" : "zh";
@@ -1885,12 +1890,18 @@
   findInput.addEventListener("input", runFind);
   findInput.addEventListener("keydown", (e) => {
     if (e.key === "Enter") { e.preventDefault(); findGo(e.shiftKey ? -1 : 1); }
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "g") { e.preventDefault(); findGo(e.shiftKey ? -1 : 1); }
     if (e.key === "Escape") { e.stopPropagation(); closeFind(); }
   });
+  for (const type of ["pointerdown", "mousedown", "mouseup", "click", "touchstart", "touchend"]) {
+    findBar.addEventListener(type, (e) => e.stopPropagation());
+  }
+  findBar.addEventListener("keydown", (e) => e.stopPropagation());
   document.getElementById("find-next").addEventListener("click", () => findGo(1));
   document.getElementById("find-prev").addEventListener("click", () => findGo(-1));
   document.getElementById("find-close").addEventListener("click", closeFind);
   document.addEventListener("keydown", (e) => {
+    if (isEditingTarget(e.target) && !e.target.closest?.("#find-bar")) return;
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "f") { e.preventDefault(); openFind(); return; }
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "g" && findBar.style.display === "flex") {
       e.preventDefault();
@@ -2100,6 +2111,14 @@
     const dia = { svg: null, vb0: null, vb: null, drag: null, diagramIndex: -1, boxMode: false };
     const diaPointers = new Map();
     let diaPinchDist = null;
+    let diaBoxStart = null;
+    let diaBoxTarget = null;
+
+    function closeDiaBoxEditor() {
+      const editor = document.getElementById("dia-box-pop");
+      if (editor) editor.style.display = "none";
+      diaBoxTarget = null;
+    }
 
     function diaSetVb() {
       if (dia.svg) dia.svg.setAttribute("viewBox", `${dia.vb.x} ${dia.vb.y} ${dia.vb.w} ${dia.vb.h}`);
@@ -2136,6 +2155,7 @@
     }
 
     function openDiagram(svg) {
+      closeDiaBoxEditor();
       const clone = svg.cloneNode(true);
       clone.removeAttribute("width");
       clone.style.maxWidth = "none";
@@ -2155,6 +2175,11 @@
       syncDiaCommentsVisibility();
     }
     function closeDiagram() {
+      closeDiaBoxEditor();
+      dia.boxMode = false;
+      document.getElementById("dia-boxbtn")?.classList.remove("active");
+      diaStage.classList.remove("boxmode");
+      document.getElementById("dia-box-rect").style.display = "none";
       diaOverlay.classList.remove("show");
       diaOverlay.classList.remove("with-comments");
       diaOverlay.classList.remove("has-comments");
@@ -2174,6 +2199,7 @@
       btn.textContent = n > 0 ? `💬 ${n}` : "💬";
     }
     function hideDiaComments() {
+      closeDiaBoxEditor();
       diaOverlay.classList.remove("with-comments");
       updateDiaCommentButton();
     }
@@ -2273,7 +2299,12 @@
     diaStage.addEventListener("dblclick", (e) => {
       if (!isTextTarget(e)) diaReset();
     });
+    diaOverlay.addEventListener("pointerdown", (e) => {
+      if (e.target.closest?.("#dia-box-pop, #dia-actions, #dia-comments")) return;
+      closeDiaBoxEditor();
+    }, { capture: true });
     window.__dia = dia;
+    window.__closeDiaBoxEditor = closeDiaBoxEditor;
     document.getElementById("dia-close").addEventListener("click", closeDiagram);
     for (const svg of contentEl.querySelectorAll(".mermaid svg")) {
       svg.addEventListener("click", () => openDiagram(svg));
@@ -2477,7 +2508,7 @@
     contentEl.addEventListener("mouseup", scheduleNativeSelectionTools);
     contentEl.addEventListener("keyup", scheduleNativeSelectionTools);
     document.addEventListener("selectionchange", () => {
-      if (document.activeElement === popTa) return;
+      if (isEditingTarget()) return;
       if (textPointer && selectedText()) textPointer.hadTextSelection = true;
       scheduleNativeSelectionTools();
     });
@@ -2560,7 +2591,7 @@
         || !!contentEl.querySelector(".r6o-selection");
     }
     function isSelectionControlTarget(target) {
-      return !!target?.closest?.("#sel-tools, #anno-pop");
+      return !!target?.closest?.("#sel-tools, #anno-pop, #find-bar, #dia-box-pop");
     }
     contentEl.addEventListener("pointerdown", (e) => {
       if (isSelectionControlTarget(e.target) || e.target.closest?.(".r6o-annotation")) return;
@@ -2600,6 +2631,7 @@
     });
     document.addEventListener("keydown", (e) => {
       if (e.key !== "Escape") return;
+      if (document.getElementById("dia-box-pop").style.display === "block") { e.preventDefault(); window.__closeDiaBoxEditor?.(); return; }
       if (document.getElementById("dia-overlay").classList.contains("show")) { window.__closeDiagram?.(); return; }
       if (pop.style.display === "block") { e.preventDefault(); closePop(); return; }
       if (hasTransientSelection()) { e.preventDefault(); dismissSelectionTools(); }
@@ -2664,7 +2696,7 @@
 
     // Refresh annotations when the page regains focus so external edits appear without reload.
     async function syncFromServer() {
-      if (pop.style.display === "block") return; // 正在编辑批注时不打断
+      if (pop.style.display === "block" || document.getElementById("dia-box-pop")?.style.display === "block" || isEditingTarget()) return; // 正在编辑批注时不打断
       try {
         const cur = await (await fetch(annoUrl)).json();
         if ((cur.updatedAt ?? null) !== annoBase) await applyServerState(cur);
@@ -2726,30 +2758,54 @@
     const diaBoxPop = document.getElementById("dia-box-pop");
     const diaBoxExtract = document.getElementById("dia-box-extract");
     const diaBoxTa = diaBoxPop.querySelector("textarea");
-    let diaBoxStart = null, diaBoxTarget = null;
     function exitBoxMode() { dia.boxMode = false; diaBoxBtn.classList.remove("active"); diaStage.classList.remove("boxmode"); diaBoxRect.style.display = "none"; }
     function refreshDiagramCommentViews() {
       renderBoxMarkers();
       renderComments();
       if (diaOverlay.classList.contains("show")) syncDiaCommentsVisibility();
     }
+    function editorBounds(anchorRect) {
+      const stageRect = diaStage.getBoundingClientRect();
+      const commentsEl = document.getElementById("dia-comments");
+      const commentsRect = commentsEl.getBoundingClientRect();
+      const inComments = diaOverlay.classList.contains("with-comments")
+        && anchorRect
+        && anchorRect.left >= commentsRect.left - 1
+        && anchorRect.right <= commentsRect.right + 1;
+      const bounds = inComments ? commentsRect : stageRect;
+      return {
+        left: bounds.left + 8,
+        right: bounds.right - 8,
+        top: bounds.top + 8,
+        bottom: bounds.bottom - 8,
+      };
+    }
     function openDiaBoxEditor(target, value, anchorRect) {
       const sel = target.annotation ? boxSelOf(target.annotation) : target;
       diaBoxTarget = target;
       diaBoxExtract.textContent = t("boxExtract", { text: sel.extractedText || `（${t("noBoxText")}）` });
       diaBoxTa.value = value ?? "";
-      const left = anchorRect?.left ?? 8;
-      const bottom = anchorRect?.bottom ?? 8;
-      diaBoxPop.style.left = `${Math.max(8, Math.min(left, window.innerWidth - 348))}px`;
-      diaBoxPop.style.top = `${Math.max(8, Math.min(bottom + 8, window.innerHeight - 200))}px`;
       diaBoxPop.style.display = "block";
+      diaBoxPop.style.visibility = "hidden";
+      diaBoxPop.style.width = "";
+      const bounds = editorBounds(anchorRect);
+      const popW = Math.min(340, Math.max(160, bounds.right - bounds.left));
+      diaBoxPop.style.width = `${popW}px`;
+      const popH = diaBoxPop.offsetHeight || 200;
+      const wantedLeft = anchorRect?.left ?? bounds.left;
+      const wantedTop = (anchorRect?.bottom ?? bounds.top) + 8;
+      const left = Math.max(bounds.left, Math.min(wantedLeft, bounds.right - popW));
+      const top = Math.max(bounds.top, Math.min(wantedTop, bounds.bottom - popH));
+      diaBoxPop.style.left = `${left}px`;
+      diaBoxPop.style.top = `${top}px`;
+      diaBoxPop.style.visibility = "";
       diaBoxTa.focus();
     }
     diaBoxBtn.addEventListener("click", () => {
       dia.boxMode = !dia.boxMode;
       diaBoxBtn.classList.toggle("active", dia.boxMode);
       diaStage.classList.toggle("boxmode", dia.boxMode);
-      diaBoxPop.style.display = "none";
+      closeDiaBoxEditor();
     });
     diaStage.addEventListener("pointerdown", (e) => {
       if (!dia.boxMode || e.button !== 0) return;
@@ -2773,12 +2829,21 @@
       const text = extractTextInBox(dia.svg, { left: x, top: y, right: x + w, bottom: y + h });
       openDiaBoxEditor({ kind: "create", diagramIndex: dia.diagramIndex, extractedText: text }, "", { left: x, bottom: y + h });
     });
-    for (const ty of ["pointerdown", "mousedown", "click", "wheel"]) diaBoxPop.addEventListener(ty, (ev) => ev.stopPropagation());
-    diaBoxPop.querySelector(".cancel").addEventListener("click", () => { diaBoxPop.style.display = "none"; diaBoxTarget = null; });
+    for (const ty of ["pointerdown", "mousedown", "mouseup", "click", "touchstart", "touchend", "dblclick", "wheel"]) {
+      diaBoxPop.addEventListener(ty, (ev) => ev.stopPropagation());
+    }
+    diaBoxPop.addEventListener("keydown", (ev) => {
+      ev.stopPropagation();
+      if (ev.key === "Escape") {
+        ev.preventDefault();
+        closeDiaBoxEditor();
+      }
+    });
+    diaBoxPop.querySelector(".cancel").addEventListener("click", closeDiaBoxEditor);
     diaBoxPop.querySelector(".ok").addEventListener("click", async () => {
       const value = diaBoxTa.value.trim();
       const target = diaBoxTarget;
-      diaBoxPop.style.display = "none";
+      closeDiaBoxEditor();
       if (target?.kind === "create" && value) {
         boxAnnotations.push({
           id: `#box-${crypto.randomUUID()}`, type: "Annotation",
@@ -2796,7 +2861,6 @@
         await persist();
         refreshDiagramCommentViews();
       }
-      diaBoxTarget = null;
     });
   }
 </script>
