@@ -3,6 +3,14 @@
 <title>docs</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/github-markdown-css@5/github-markdown-light.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@recogito/recogito-js@1.8.4/dist/recogito.min.css">
+<script>
+  (() => {
+    const mode = localStorage.getItem("docs-viewer:theme") || "system";
+    const dark = mode === "dark" || (mode === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
+    document.documentElement.dataset.theme = dark ? "dark" : "light";
+    document.documentElement.dataset.themeMode = mode;
+  })();
+</script>
 <style>
   * { box-sizing: border-box; }
   body { margin: 0; background: #fff; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif; }
@@ -166,6 +174,300 @@
   #dia-box-pop .ok { background: #d97757; border: 1px solid #d97757; color: #fff; }
   #dia-box-pop .cancel { background: transparent; border: 1px solid #d9d8d3; color: #56554e; }
   .cmt-box .q { border-left-color: #d97757; color: #8a5a44; }
+
+  :root,
+  html[data-theme="light"] {
+    color-scheme: light;
+    --bg: #fff;
+    --surface: #fff;
+    --surface-soft: #faf9f5;
+    --surface-muted: #f0eee5;
+    --surface-active: #e9e5d8;
+    --surface-tint: #faf6f0;
+    --text: #1f2328;
+    --text-soft: #56554e;
+    --text-muted: #8e8d86;
+    --text-faint: #9b9a92;
+    --border: #e8e6df;
+    --border-strong: #d9d8d3;
+    --border-soft: rgba(0,0,0,.1);
+    --accent: #d97757;
+    --accent-strong: #c96644;
+    --accent-soft: rgba(217,119,87,.16);
+    --accent-border: #e3a886;
+    --badge: #b08968;
+    --shadow: rgba(0,0,0,.14);
+    --overlay: rgba(20,19,17,.82);
+    --overlay-strong: rgba(20,19,17,.9);
+    --scrim: rgba(20,19,17,.28);
+    --canvas-dark: #111;
+    --success: #2f7d4b;
+    --success-bg: #edf7ef;
+    --success-border: #cfe8d6;
+  }
+
+  html[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #161718;
+    --surface: #1c1d1f;
+    --surface-soft: #202123;
+    --surface-muted: #2a2b2d;
+    --surface-active: #34302a;
+    --surface-tint: #2a241f;
+    --text: #e7e7e2;
+    --text-soft: #c9c7bf;
+    --text-muted: #9f9b90;
+    --text-faint: #87837a;
+    --border: #333437;
+    --border-strong: #494a4d;
+    --border-soft: rgba(255,255,255,.11);
+    --accent: #e08a67;
+    --accent-strong: #ef9a75;
+    --accent-soft: rgba(224,138,103,.2);
+    --accent-border: #9b674f;
+    --badge: #d0a17f;
+    --shadow: rgba(0,0,0,.46);
+    --overlay: rgba(8,9,10,.86);
+    --overlay-strong: rgba(8,9,10,.94);
+    --scrim: rgba(0,0,0,.52);
+    --canvas-dark: #0f1012;
+    --success: #8fd0a2;
+    --success-bg: #1f3328;
+    --success-border: #355845;
+  }
+
+  html[data-theme="dark"] .markdown-body {
+    --color-canvas-default: var(--bg);
+    --color-canvas-subtle: var(--surface-soft);
+    --color-fg-default: var(--text);
+    --color-fg-muted: var(--text-muted);
+    --color-border-default: var(--border-strong);
+    --color-border-muted: var(--border);
+    --color-neutral-muted: rgba(255,255,255,.12);
+    --color-accent-fg: #8bb7ff;
+    --color-accent-emphasis: #4d87da;
+    --color-success-fg: var(--success);
+    --color-danger-fg: #ff8d8d;
+  }
+
+  body { background: var(--bg); color: var(--text); }
+  .app, #main, .markdown-body { background: var(--bg); color: var(--text); }
+  #sidebar { background: var(--surface-soft); border-right-color: var(--border); }
+  #resizer:hover, #resizer.dragging { background: var(--border-strong); }
+  .topbar { background: color-mix(in srgb, var(--surface) 94%, transparent); border-bottom-color: var(--border); color: var(--text-soft); }
+  #docname { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #side-scrim { display: none; }
+  .top-actions { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+  .ctl-btn,
+  #toggle,
+  .zoom-ctl button,
+  .stab,
+  #img-close,
+  #dia-close,
+  #dia-boxbtn,
+  #dia-commentbtn {
+    border-color: var(--border-strong);
+    background: var(--surface);
+    color: var(--text-soft);
+  }
+  .ctl-btn { border: 1px solid var(--border-strong); border-radius: 6px; cursor: pointer; font: 12px/1.4 system-ui; padding: 2px 8px; min-width: 36px; }
+  .ctl-btn:hover,
+  #toggle:hover,
+  .zoom-ctl button:hover,
+  .stab:hover,
+  #img-close:hover,
+  #dia-close:hover,
+  #dia-boxbtn:hover,
+  #dia-commentbtn:hover { background: var(--surface-muted); }
+  #pin-peek,
+  #outline-peek,
+  #anno-pop,
+  #sel-tools,
+  #find-bar,
+  #dia-box-pop {
+    background: color-mix(in srgb, var(--surface) 98%, transparent);
+    border-color: var(--border-soft);
+    box-shadow: 0 10px 30px var(--shadow);
+  }
+  #pin-peek .pin-peek-head,
+  #pin-peek .pin-empty,
+  .side-head .n,
+  .sec-label,
+  .cmt-copy-status,
+  .cmt-empty,
+  .ol-empty,
+  #find-count,
+  #img-caption,
+  #img-hint,
+  #dia-hint,
+  #dia-comments .dc-empty { color: var(--text-faint); }
+  .side-head,
+  .side-head a,
+  .t-row,
+  .ol-h1,
+  .ol-h2 { color: var(--text-soft); }
+  .t-row:hover,
+  .ol-item:hover,
+  .cmt-tools button:hover:not(:disabled),
+  #sel-tools button:hover,
+  #anno-pop .cancel:hover,
+  #dia-comments .dc-close:hover { background: var(--surface-muted); }
+  .t-row.active,
+  .stab.on,
+  #outline-peek .ol-item.active { background: var(--surface-active); color: var(--text); }
+  .chev,
+  .cmt-tools button,
+  #sel-tools button,
+  #dia-comments .dc-close { color: var(--text-muted); }
+  .badge,
+  .mm-box-badge { color: var(--badge); }
+  .star { color: #d19b2a; }
+  .markdown-body mark { background: color-mix(in srgb, #fff3a3 72%, var(--bg)); color: var(--text); }
+  .missing-asset,
+  #dia-comments .dc-extract,
+  #dia-box-extract { background: var(--surface-tint); border-color: var(--border-strong); color: color-mix(in srgb, var(--accent) 65%, var(--text)); }
+  #img-overlay { background: var(--overlay-strong); }
+  #img-stage { background: var(--canvas-dark); touch-action: none; }
+  #img-caption,
+  #img-hint,
+  #dia-hint { background: color-mix(in srgb, var(--surface) 88%, transparent); }
+  #dia-overlay { background: var(--overlay); }
+  #dia-stage { background: var(--bg); touch-action: none; }
+  #dia-comments { background: var(--surface-soft); border-color: var(--border-soft); }
+  #dia-comments .dc-title { color: var(--text-soft); }
+  #dia-comments .dc-item,
+  .cmt { background: var(--surface); border-color: var(--border); color: var(--text); }
+  #dia-comments .dc-item:hover,
+  .cmt:hover { border-color: var(--accent-border); background: color-mix(in srgb, var(--surface) 92%, var(--surface-tint)); }
+  #dia-comments .dc-body,
+  .cmt .c,
+  #find-bar input,
+  #anno-pop textarea,
+  #dia-box-pop textarea { color: var(--text); background: var(--surface); }
+  #anno-pop textarea::placeholder,
+  #dia-box-pop textarea::placeholder { color: var(--text-faint); }
+  .cmt .q,
+  .ol-item { color: var(--text-muted); }
+  .ol-item.active { border-left-color: var(--accent); background: var(--surface-tint); color: var(--text); }
+  .mm-box-badge,
+  #dia-commentbtn { background: color-mix(in srgb, var(--surface-tint) 88%, transparent); border-color: var(--accent-border); }
+  #dia-boxbtn.active,
+  #anno-pop .ok,
+  #dia-box-pop .ok { background: var(--accent); border-color: var(--accent); color: #fff; }
+  #anno-pop .ok:hover { background: var(--accent-strong); }
+  #anno-pop .cancel,
+  #dia-box-pop .cancel { border-color: var(--border-strong); color: var(--text-soft); }
+  #anno-pop .foot,
+  #dia-box-pop .foot { background: var(--surface-soft); border-top-color: var(--border-soft); }
+  .r6o-annotation, .r6o-selection { background: var(--accent-soft); border-bottom-color: color-mix(in srgb, var(--accent) 70%, transparent); }
+  .r6o-annotation:hover { background: color-mix(in srgb, var(--accent-soft) 75%, var(--accent)); }
+  #sel-tools.copied #sel-copy { color: var(--success); background: var(--success-bg); border-color: var(--success-border); }
+
+  @media (hover: none) {
+    .star { visibility: visible; opacity: .7; }
+    .t-row:hover, .ol-item:hover { background: transparent; }
+    .t-row.active { background: var(--surface-active); }
+  }
+
+  @media (max-width: 760px) {
+    .app { position: relative; overflow: hidden; height: 100dvh; }
+    #sidebar {
+      position: fixed;
+      inset: 0 auto 0 0;
+      width: min(86vw, 360px) !important;
+      max-width: none;
+      min-width: 0;
+      height: 100dvh;
+      z-index: 90;
+      transform: translateX(0);
+      transition: transform .18s ease;
+      box-shadow: 8px 0 30px var(--shadow);
+      padding-bottom: max(24px, env(safe-area-inset-bottom));
+    }
+    .app.no-side #sidebar { display: block; transform: translateX(-104%); }
+    #resizer { display: none; }
+    .app:not(.no-side) #side-scrim {
+      display: block;
+      position: fixed;
+      inset: 0;
+      z-index: 85;
+      background: var(--scrim);
+    }
+    #main { width: 100%; flex-basis: 100%; }
+    .topbar {
+      gap: 6px;
+      min-height: 48px;
+      padding: 7px max(8px, env(safe-area-inset-right)) 7px max(8px, env(safe-area-inset-left));
+    }
+    #toggle, .ctl-btn, .zoom-ctl button { min-width: 34px; min-height: 34px; padding: 4px 8px; }
+    .top-actions { margin-left: 0; }
+    .zoom-ctl { margin-left: 0; gap: 1px; }
+    .zoom-ctl #zoom-pct { min-width: 42px; padding-inline: 4px; }
+    #docname { font-size: 13px; }
+    #content { padding: 10px 16px 88px; }
+    .app.no-side.has-outline #content { padding-left: 16px; }
+    .app.no-side.has-outline #outline-peek-trigger { display: none; }
+    #pin-peek, #outline-peek { display: none !important; }
+    .side-tabs { padding-inline: 10px; }
+    .stab { min-height: 36px; font-size: 13px; }
+    .t-row { min-height: 38px; font-size: 14px; padding-right: 12px; }
+    #pins .t-row .name { font-size: 13px; }
+    .cmt { margin-inline: 10px; padding: 10px; font-size: 13px; }
+    #find-bar {
+      top: 54px;
+      left: 8px;
+      right: 8px;
+      width: auto;
+    }
+    #find-bar input { flex: 1; width: auto; min-width: 0; }
+    #anno-pop,
+    #dia-box-pop {
+      width: min(340px, calc(100vw - 16px));
+      max-width: calc(100vw - 16px);
+    }
+    #sel-tools { position: fixed; }
+    #img-close, #dia-close { top: max(10px, env(safe-area-inset-top)); right: max(10px, env(safe-area-inset-right)); }
+    #img-hint { display: none; }
+    #img-caption { bottom: max(10px, env(safe-area-inset-bottom)); max-width: calc(100vw - 24px); }
+    #dia-overlay.with-comments #dia-stage {
+      right: 0;
+      bottom: min(42dvh, 340px);
+    }
+    #dia-comments {
+      top: auto;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: auto;
+      height: min(42dvh, 340px);
+      border-left: 0;
+      border-top: 1px solid var(--border-soft);
+      padding: 12px max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+    }
+    #dia-resizer { display: none !important; }
+    #dia-overlay.with-comments #dia-close { right: max(10px, env(safe-area-inset-right)); }
+    #dia-overlay.with-comments #dia-boxbtn { right: calc(max(10px, env(safe-area-inset-right)) + 82px); }
+    #dia-overlay.with-comments #dia-hint { left: 50%; }
+    #dia-boxbtn {
+      top: max(10px, env(safe-area-inset-top));
+      right: calc(max(10px, env(safe-area-inset-right)) + 82px);
+      max-width: 42vw;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #dia-commentbtn {
+      top: max(10px, env(safe-area-inset-top));
+      right: calc(max(10px, env(safe-area-inset-right)) + 198px);
+    }
+    #dia-hint {
+      bottom: calc(10px + env(safe-area-inset-bottom));
+      max-width: calc(100vw - 24px);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
 </style>
 <body>
 <div class="app" id="app">
@@ -184,9 +486,11 @@
     </div>
     <div id="panel-comments" style="display:none"><div class="cmt-tools"><span id="copy-comments-status" class="cmt-copy-status"></span><button id="copy-comments-md" type="button" title="复制本页所有评论为 Markdown" aria-label="复制本页所有评论为 Markdown"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></button></div><div id="comments-list"></div></div>
   </aside>
+  <div id="side-scrim"></div>
   <div id="resizer" title="拖拽调整宽度 · 双击复位"></div>
   <div id="main">
     <div class="topbar"><button id="toggle" title="收起/展开目录">☰</button><span id="docname">选择左侧文档</span>
+      <div class="top-actions"><button id="lang-toggle" class="ctl-btn" type="button">中</button><button id="theme-toggle" class="ctl-btn" type="button">Auto</button></div>
       <div class="zoom-ctl"><button id="zoom-out" title="缩小字号">A−</button><button id="zoom-pct" title="点击复原 100%">100%</button><button id="zoom-in" title="放大字号">A+</button></div></div>
     <div id="pin-peek" role="navigation" aria-label="置顶"><div class="pin-peek-head">置顶</div><div id="pin-peek-list"></div></div>
     <button id="outline-peek-trigger" type="button" title="大纲" aria-label="大纲"></button>
@@ -208,22 +512,223 @@
   const OPEN_KEY = "docs-viewer:open";
   const TAB_KEY = "docs-viewer:tab";
   const SCROLL_KEY = "docs-viewer:scroll";
+  const LANG_KEY = "docs-viewer:lang";
+  const THEME_KEY = "docs-viewer:theme";
+  const MOBILE_QUERY = matchMedia("(max-width: 760px)");
+  const DARK_QUERY = matchMedia("(prefers-color-scheme: dark)");
   const mainEl = document.getElementById("main");
   const toggleBtn = document.getElementById("toggle");
   const pinPeek = document.getElementById("pin-peek");
   const outlinePeek = document.getElementById("outline-peek");
   const outlinePeekTrigger = document.getElementById("outline-peek-trigger");
+  const langToggle = document.getElementById("lang-toggle");
+  const themeToggle = document.getElementById("theme-toggle");
+  const sideScrim = document.getElementById("side-scrim");
+  const I18N = {
+    zh: {
+      langName: "中文",
+      langSwitch: "EN",
+      switchLanguage: "切换到英文",
+      themeSystem: "自动",
+      themeLight: "亮",
+      themeDark: "暗",
+      toggleTheme: "切换明暗模式",
+      toggleSide: "收起/展开目录",
+      chooseDoc: "选择左侧文档",
+      files: "文件",
+      outline: "大纲",
+      comments: "评论",
+      pinned: "置顶",
+      noPins: "暂无置顶",
+      noHeadings: "本文档无标题",
+      noDocComments: "本文档暂无评论",
+      chooseDocComments: "选择文档后显示其评论",
+      copyComments: "复制本页所有评论为 Markdown",
+      copiedComments: "已复制 {count} 条",
+      copyFailed: "复制失败",
+      copied: "已复制",
+      copySelection: "复制选中文本",
+      commentSelection: "评论选中文本",
+      commentPlaceholder: "写下评论…",
+      commentRegionPlaceholder: "评论这块区域…",
+      cancel: "取消",
+      ok: "确定",
+      zoomOut: "缩小字号",
+      zoomIn: "放大字号",
+      zoomReset: "点击复原 100%",
+      find: "查找",
+      findPrev: "上一个 (Shift+Enter)",
+      findNext: "下一个 (Enter)",
+      close: "关闭",
+      imageHint: "滚轮/双指缩放 · 拖拽平移 · 双击复位 · Esc 关闭",
+      diagramHint: "滚轮/双指缩放 · 拖拽平移 · 框选区域 · 双击复位 · Esc 关闭",
+      diagramComments: "本图评论 · {count}",
+      showDiagramComments: "查看本图评论",
+      hideComments: "收起评论",
+      boxComment: "框选评论",
+      boxExtract: "框选到：{text}",
+      noBoxText: "框内无文字",
+      noText: "无文字",
+      noExcerpt: "无摘录",
+      empty: "空",
+      diagramBoxLabel: "图框",
+      missingImage: "Missing image: {label}",
+      homeCopy: "Choose a document from the sidebar. Select text to add comments. Annotations are embedded in the markdown file as a trailing comment block and can be tracked by git.",
+      saveConflict: "批注已在别处更新，本次操作未保存。页面已同步最新批注，如仍需要请重新操作。",
+      saveFailed: "批注保存失败",
+      star: "置顶/取消",
+      sidebarResize: "拖拽调整宽度 · 双击复位",
+    },
+    en: {
+      langName: "English",
+      langSwitch: "中",
+      switchLanguage: "Switch to Chinese",
+      themeSystem: "Auto",
+      themeLight: "Light",
+      themeDark: "Dark",
+      toggleTheme: "Toggle color mode",
+      toggleSide: "Toggle sidebar",
+      chooseDoc: "Choose a document",
+      files: "Files",
+      outline: "Outline",
+      comments: "Comments",
+      pinned: "Pinned",
+      noPins: "No pinned docs",
+      noHeadings: "No headings in this document",
+      noDocComments: "No comments in this document",
+      chooseDocComments: "Choose a document to view comments",
+      copyComments: "Copy all comments as Markdown",
+      copiedComments: "Copied {count}",
+      copyFailed: "Copy failed",
+      copied: "Copied",
+      copySelection: "Copy selection",
+      commentSelection: "Comment on selection",
+      commentPlaceholder: "Write a comment…",
+      commentRegionPlaceholder: "Comment on this region…",
+      cancel: "Cancel",
+      ok: "OK",
+      zoomOut: "Decrease text size",
+      zoomIn: "Increase text size",
+      zoomReset: "Reset to 100%",
+      find: "Find",
+      findPrev: "Previous (Shift+Enter)",
+      findNext: "Next (Enter)",
+      close: "Close",
+      imageHint: "Wheel/pinch to zoom · drag to pan · double tap to reset · Esc to close",
+      diagramHint: "Wheel/pinch to zoom · drag to pan · select region · double tap to reset · Esc to close",
+      diagramComments: "Diagram comments · {count}",
+      showDiagramComments: "View diagram comments",
+      hideComments: "Collapse comments",
+      boxComment: "Box comment",
+      boxExtract: "Selected: {text}",
+      noBoxText: "No text in region",
+      noText: "No text",
+      noExcerpt: "No excerpt",
+      empty: "Empty",
+      diagramBoxLabel: "Diagram box",
+      missingImage: "Missing image: {label}",
+      homeCopy: "Choose a document from the sidebar. Select text to add comments. Annotations are embedded in the markdown file as a trailing comment block and can be tracked by git.",
+      saveConflict: "Annotations changed elsewhere. This edit was not saved; the page has synced the latest state.",
+      saveFailed: "Failed to save annotations",
+      star: "Pin/unpin",
+      sidebarResize: "Drag to resize · double-click to reset",
+    },
+  };
+  let lang = localStorage.getItem(LANG_KEY) || (navigator.language?.toLowerCase().startsWith("zh") ? "zh" : "en");
+  let themeMode = localStorage.getItem(THEME_KEY) || "system";
+  function t(key, vars = {}) {
+    const raw = I18N[lang]?.[key] ?? I18N.en[key] ?? key;
+    return raw.replace(/\{(\w+)\}/g, (_, name) => vars[name] ?? "");
+  }
+  function resolvedTheme(mode = themeMode) {
+    return mode === "dark" || (mode === "system" && DARK_QUERY.matches) ? "dark" : "light";
+  }
+  function applyTheme(mode = themeMode, { reload = false } = {}) {
+    themeMode = mode;
+    localStorage.setItem(THEME_KEY, mode);
+    document.documentElement.dataset.themeMode = mode;
+    document.documentElement.dataset.theme = resolvedTheme(mode);
+    themeToggle.textContent = t(mode === "dark" ? "themeDark" : mode === "light" ? "themeLight" : "themeSystem");
+    themeToggle.title = t("toggleTheme");
+    if (reload) {
+      saveDocScroll();
+      location.reload();
+    }
+  }
+  function applyChromeText() {
+    document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
+    langToggle.textContent = t("langSwitch");
+    langToggle.title = t("switchLanguage");
+    toggleBtn.title = t("toggleSide");
+    document.getElementById("docname").textContent = docName || t("chooseDoc");
+    document.querySelector('[data-tab="files"]').textContent = t("files");
+    document.querySelector('[data-tab="outline"]').textContent = t("outline");
+    document.querySelector('[data-tab="comments"]').childNodes[0].nodeValue = `${t("comments")} `;
+    document.querySelector("#pins-sec .sec-label").textContent = t("pinned");
+    document.querySelector("#panel-files > .sec-label").textContent = t("files");
+    document.querySelector(".pin-peek-head").textContent = t("pinned");
+    document.getElementById("resizer").title = t("sidebarResize");
+    document.getElementById("copy-comments-md").title = t("copyComments");
+    document.getElementById("copy-comments-md").setAttribute("aria-label", t("copyComments"));
+    document.getElementById("zoom-out").title = t("zoomOut");
+    document.getElementById("zoom-in").title = t("zoomIn");
+    document.getElementById("zoom-pct").title = t("zoomReset");
+    document.getElementById("sel-copy").title = t("copySelection");
+    document.getElementById("sel-copy").setAttribute("aria-label", t("copySelection"));
+    document.getElementById("sel-comment").title = t("commentSelection");
+    document.getElementById("sel-comment").setAttribute("aria-label", t("commentSelection"));
+    document.querySelector("#anno-pop textarea").placeholder = t("commentPlaceholder");
+    document.querySelector("#anno-pop .cancel").textContent = t("cancel");
+    document.querySelector("#anno-pop .ok").textContent = t("ok");
+    document.getElementById("find-bar").querySelector("input").placeholder = t("find");
+    document.getElementById("find-prev").title = t("findPrev");
+    document.getElementById("find-next").title = t("findNext");
+    document.getElementById("find-close").title = t("close");
+    document.getElementById("img-close").textContent = `✕ ${t("close")}`;
+    document.getElementById("img-hint").textContent = t("imageHint");
+    document.getElementById("dia-commentbtn").title = t("showDiagramComments");
+    document.getElementById("dia-boxbtn").title = t("boxComment");
+    document.getElementById("dia-boxbtn").textContent = `▢ ${t("boxComment")}`;
+    document.getElementById("dia-close").textContent = `✕ ${t("close")}`;
+    document.getElementById("dia-hint").textContent = t("diagramHint");
+    document.querySelector("#dia-box-pop textarea").placeholder = t("commentRegionPlaceholder");
+    document.querySelector("#dia-box-pop .cancel").textContent = t("cancel");
+    document.querySelector("#dia-box-pop .ok").textContent = t("ok");
+    applyTheme(themeMode);
+  }
+  langToggle.addEventListener("click", () => {
+    lang = lang === "zh" ? "en" : "zh";
+    localStorage.setItem(LANG_KEY, lang);
+    applyChromeText();
+    renderPins?.();
+    renderComments?.();
+  });
+  themeToggle.addEventListener("click", () => {
+    const order = ["system", "light", "dark"];
+    applyTheme(order[(order.indexOf(themeMode) + 1) % order.length], { reload: true });
+  });
+  DARK_QUERY.addEventListener?.("change", () => {
+    if (themeMode === "system") applyTheme("system", { reload: true });
+  });
   let pinPeekTimer = null;
   let outlinePeekTimer = null;
   let outlinePeekPinned = false;
   let syncOutlineActiveNow = () => {};
   let syncOutlinePeekPosition = () => {};
-  if (localStorage.getItem(SIDE_KEY) === "0") app.classList.add("no-side");
+  const storedSide = localStorage.getItem(SIDE_KEY);
+  if (storedSide === "0" || (storedSide === null && MOBILE_QUERY.matches)) app.classList.add("no-side");
   toggleBtn.addEventListener("click", () => {
     app.classList.toggle("no-side");
     localStorage.setItem(SIDE_KEY, app.classList.contains("no-side") ? "0" : "1");
     pinPeek.classList.remove("show");
     hideOutlinePeek();
+  });
+  sideScrim.addEventListener("click", () => {
+    app.classList.add("no-side");
+    localStorage.setItem(SIDE_KEY, "0");
+  });
+  MOBILE_QUERY.addEventListener?.("change", (e) => {
+    if (localStorage.getItem(SIDE_KEY) === null) app.classList.toggle("no-side", e.matches);
   });
 
   function showPinPeek() {
@@ -335,6 +840,7 @@
   const docName = location.pathname.startsWith("/d/")
     ? decodeURIComponent(location.pathname.slice(3))
     : null;
+  applyChromeText();
   const IMAGE_EXT_RE = /\.(avif|gif|jpe?g|png|svg|webp)$/i;
 
   function scrollState() {
@@ -472,7 +978,7 @@
       img.addEventListener("error", () => {
         const missing = document.createElement("span");
         missing.className = "missing-asset";
-        missing.textContent = `Missing image: ${label}`;
+        missing.textContent = t("missingImage", { label });
         img.replaceWith(missing);
       }, { once: true });
       img.addEventListener("click", (e) => {
@@ -488,6 +994,8 @@
   const imgFull = document.getElementById("img-full");
   const imgCaption = document.getElementById("img-caption");
   const imgState = { x: 0, y: 0, scale: 1, fitScale: 1, drag: null };
+  const imgPointers = new Map();
+  let imgPinchDist = null;
 
   function applyImageTransform() {
     imgFull.style.transform = `translate(${imgState.x}px, ${imgState.y}px) scale(${imgState.scale})`;
@@ -521,6 +1029,8 @@
     imgFull.onload = null;
     imgFull.removeAttribute("src");
     imgState.drag = null;
+    imgPointers.clear();
+    imgPinchDist = null;
   }
 
   function zoomImageAt(clientX, clientY, factor) {
@@ -537,6 +1047,19 @@
     applyImageTransform();
   }
 
+  function pointerPair(map) {
+    const pts = [...map.values()];
+    if (pts.length < 2) return null;
+    const [a, b] = pts;
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    return {
+      dist: Math.max(1, Math.hypot(dx, dy)),
+      x: (a.x + b.x) / 2,
+      y: (a.y + b.y) / 2,
+    };
+  }
+
   document.getElementById("img-close").addEventListener("click", closeImage);
   imgOverlay.addEventListener("click", (e) => {
     if (e.target === imgOverlay || e.target === imgStage) closeImage();
@@ -547,19 +1070,42 @@
   }, { passive: false });
   imgStage.addEventListener("pointerdown", (e) => {
     if (e.button !== 0 || e.target !== imgFull) return;
+    imgPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (imgPointers.size >= 2) {
+      imgState.drag = null;
+      imgStage.classList.remove("dragging");
+      imgPinchDist = pointerPair(imgPointers)?.dist ?? null;
+      try { imgStage.setPointerCapture(e.pointerId); } catch {}
+      return;
+    }
     imgState.drag = { id: e.pointerId, x: e.clientX, y: e.clientY, startX: imgState.x, startY: imgState.y };
     imgStage.classList.add("dragging");
-    imgStage.setPointerCapture(e.pointerId);
+    try { imgStage.setPointerCapture(e.pointerId); } catch {}
   });
   imgStage.addEventListener("pointermove", (e) => {
+    if (imgPointers.has(e.pointerId)) imgPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (imgPointers.size >= 2) {
+      const pair = pointerPair(imgPointers);
+      if (pair && imgPinchDist) zoomImageAt(pair.x, pair.y, pair.dist / imgPinchDist);
+      imgPinchDist = pair?.dist ?? null;
+      return;
+    }
     if (!imgState.drag || imgState.drag.id !== e.pointerId) return;
     imgState.x = imgState.drag.startX + e.clientX - imgState.drag.x;
     imgState.y = imgState.drag.startY + e.clientY - imgState.drag.y;
     applyImageTransform();
   });
   imgStage.addEventListener("pointerup", (e) => {
+    imgPointers.delete(e.pointerId);
+    if (imgPointers.size < 2) imgPinchDist = null;
     if (!imgState.drag || imgState.drag.id !== e.pointerId) return;
     imgState.drag = null;
+    imgStage.classList.remove("dragging");
+  });
+  imgStage.addEventListener("pointercancel", (e) => {
+    imgPointers.delete(e.pointerId);
+    if (imgPointers.size < 2) imgPinchDist = null;
+    if (imgState.drag?.id === e.pointerId) imgState.drag = null;
     imgStage.classList.remove("dragging");
   });
   imgStage.addEventListener("dblclick", (e) => {
@@ -623,14 +1169,14 @@
     return `<div class="t-row t-file${active}" data-path="${path}" style="--pad:${12 + depth * 14}px">
       <span class="chev"></span><span class="name">${label}</span>
       ${count ? `<span class="badge">💬${count}</span>` : ""}
-      <button class="star${starOn}" title="置顶/取消">${pins.has(path) ? "★" : "☆"}</button></div>`;
+      <button class="star${starOn}" title="${t("star")}">${pins.has(path) ? "★" : "☆"}</button></div>`;
   }
 
   function dirRowHtml(path, label, depth) {
     const starOn = pins.has(path) ? " on" : "";
     return `<div class="t-row" data-path="${path}" style="--pad:${12 + depth * 14}px">
       <span class="chev">▶</span><span class="name">${label}</span>
-      <button class="star${starOn}" title="置顶/取消">${pins.has(path) ? "★" : "☆"}</button></div>`;
+      <button class="star${starOn}" title="${t("star")}">${pins.has(path) ? "★" : "☆"}</button></div>`;
   }
 
   function treeHtml(node, depth = 0) {
@@ -714,7 +1260,7 @@
       }
       return rowHtml(p, 0, { fullLabel: true });
     }).join("");
-    listEl.innerHTML = rows || `<div class="pin-empty">暂无置顶</div>`;
+    listEl.innerHTML = rows || `<div class="pin-empty">${t("noPins")}</div>`;
   }
 
   document.getElementById("sidebar").addEventListener("click", (e) => {
@@ -808,7 +1354,7 @@
         if (!badge) {
           badge = document.createElement("button");
           badge.className = "mm-box-badge";
-          badge.title = "查看本图评论";
+          badge.title = t("showDiagramComments");
           badge.addEventListener("click", (e) => { e.stopPropagation(); const svg = holder.querySelector("svg"); if (svg) { window.__openDiagram?.(svg); window.__showDiaComments?.(idx); } });
           holder.appendChild(badge);
         }
@@ -855,26 +1401,26 @@
       const state = await (await fetch(`/api/annotations/${encodeURI(docName)}`)).json();
       if (Array.isArray(state.annotations)) return itemsFromAnnotations(state.annotations);
     } catch (err) {
-      console.error("批注导出读取失败", err);
+      console.error("annotation export read failed", err);
     }
     return collectCommentItems();
   }
 
   function mdBlockquote(value) {
-    const text = (value || "（无摘录）").trim();
+    const text = (value || `（${t("noExcerpt")}）`).trim();
     return text.split(/\r?\n/).map((line) => `> ${line || " "}`).join("\n");
   }
 
   function commentsMarkdown(items) {
-    const title = docName || "未选择文档";
-    if (!items.length) return `# ${title} 的评论\n\n暂无评论。\n`;
+    const title = docName || t("chooseDoc");
+    if (!items.length) return `# ${title} ${t("comments")}\n\n${t("noDocComments")}。\n`;
     return [
       `# ${title} 的评论`,
       "",
       ...items.flatMap((it, i) => {
-        const type = it.box ? "图框评论" : "文字评论";
-        const quote = it.box ? (boxSelOf(it.a).extractedText || "（无文字）") : quoteOf(it.a);
-        const comment = bodyOf(it.a).trim() || "（空）";
+        const type = it.box ? `${t("diagramBoxLabel")} ${t("comments")}` : t("comments");
+        const quote = it.box ? (boxSelOf(it.a).extractedText || `（${t("noText")}）`) : quoteOf(it.a);
+        const comment = bodyOf(it.a).trim() || `（${t("empty")}）`;
         return [
           `## ${i + 1}. ${type}`,
           "",
@@ -937,12 +1483,12 @@
     if (docName) refreshBadge(docName, items.length);
     renderBoxMarkers();
     if (!items.length) {
-      listEl.innerHTML = `<div class="cmt-empty">${docName ? "本文档暂无评论" : "选择文档后显示其评论"}</div>`;
+      listEl.innerHTML = `<div class="cmt-empty">${docName ? t("noDocComments") : t("chooseDocComments")}</div>`;
       return;
     }
     listEl.innerHTML = items.map((it, i) => {
       const comment = bodyOf(it.a);
-      const q = it.box ? `▢ 图框：${boxSelOf(it.a).extractedText || "（无文字）"}` : quoteOf(it.a);
+      const q = it.box ? `▢ ${t("diagramBoxLabel")}：${boxSelOf(it.a).extractedText || `（${t("noText")}）`}` : quoteOf(it.a);
       return `<div class="cmt${it.box ? " cmt-box" : ""}" data-i="${i}"><div class="q">${q}</div><div class="c">${comment}</div></div>`;
     }).join("");
     listEl.onclick = (e) => {
@@ -966,10 +1512,10 @@
       const md = commentsMarkdown(items);
       window.__lastCommentsMarkdown = md;
       await copyText(md);
-      status.textContent = `已复制 ${items.length} 条`;
-      setTimeout(() => { if (status.textContent.startsWith("已复制")) status.textContent = ""; }, 1800);
+      status.textContent = t("copiedComments", { count: items.length });
+      setTimeout(() => { if (status.textContent === t("copiedComments", { count: items.length })) status.textContent = ""; }, 1800);
     } catch (err) {
-      status.textContent = "复制失败";
+      status.textContent = t("copyFailed");
       console.error(err);
     }
   });
@@ -1133,7 +1679,7 @@
     syncOutlineActiveNow = () => {};
     syncOutlinePeekPosition = () => {};
     renderComments();
-    contentEl.innerHTML = `<p style="color:#9b9a92">Choose a document from the sidebar. Select text to add comments. Annotations are embedded in the markdown file as a trailing comment block and can be tracked by git.</p>`;
+    contentEl.innerHTML = `<p style="color:var(--text-faint)">${t("homeCopy")}</p>`;
   } else {
     document.getElementById("docname").textContent = docName;
     document.title = docName;
@@ -1171,8 +1717,8 @@
     if (!headings.length) {
       app.classList.remove("has-outline");
       hideOutlinePeek();
-      outlineEl.innerHTML = `<div class="ol-empty">本文档无标题</div>`;
-      outlinePeekList.innerHTML = `<div class="ol-empty">本文档无标题</div>`;
+      outlineEl.innerHTML = `<div class="ol-empty">${t("noHeadings")}</div>`;
+      outlinePeekList.innerHTML = `<div class="ol-empty">${t("noHeadings")}</div>`;
       outlinePeekTrigger.innerHTML = "";
       syncOutlineActiveNow = () => {};
       syncOutlinePeekPosition = () => {};
@@ -1262,13 +1808,15 @@
       holder.textContent = block.textContent;
       pre.replaceWith(holder);
     }
-    mermaid.initialize({ startOnLoad: false, theme: "default", securityLevel: "loose" });
+    mermaid.initialize({ startOnLoad: false, theme: resolvedTheme() === "dark" ? "dark" : "default", securityLevel: "loose" });
     await mermaid.run({ querySelector: ".mermaid" });
     restoreDocScrollSoon();
 
     const diaOverlay = document.getElementById("dia-overlay");
     const diaStage = document.getElementById("dia-stage");
     const dia = { svg: null, vb0: null, vb: null, drag: null, diagramIndex: -1, boxMode: false };
+    const diaPointers = new Map();
+    let diaPinchDist = null;
 
     function diaSetVb() {
       if (dia.svg) dia.svg.setAttribute("viewBox", `${dia.vb.x} ${dia.vb.y} ${dia.vb.w} ${dia.vb.h}`);
@@ -1284,6 +1832,24 @@
     }
     function isTextTarget(e) {
       return e.target instanceof Element && !!e.target.closest("text, tspan, foreignObject");
+    }
+    function zoomDiagramAt(clientX, clientY, factor) {
+      if (!dia.svg) return;
+      const r = diaStage.getBoundingClientRect();
+      const s = diaScale();
+      const ox = (r.width - s * dia.vb.w) / 2;
+      const oy = (r.height - s * dia.vb.h) / 2;
+      const ux = dia.vb.x + (clientX - r.left - ox) / s;
+      const uy = dia.vb.y + (clientY - r.top - oy) / s;
+      let f = factor;
+      const total = (dia.vb0.w / dia.vb.w) * f;
+      if (total > 30) f *= 30 / total;
+      if (total < 0.15) f *= 0.15 / total;
+      dia.vb.w /= f;
+      dia.vb.h /= f;
+      dia.vb.x = ux - (ux - dia.vb.x) / f;
+      dia.vb.y = uy - (uy - dia.vb.y) / f;
+      diaSetVb();
     }
 
     function openDiagram(svg) {
@@ -1312,6 +1878,8 @@
       diaStage.innerHTML = "";
       dia.svg = null;
       dia.drag = null;
+      diaPointers.clear();
+      diaPinchDist = null;
     }
     function diaCommentCount(idx = dia.diagramIndex) {
       return boxAnnotations.filter((a) => (boxSelOf(a).diagramIndex ?? -1) === idx).length;
@@ -1331,9 +1899,9 @@
       const list = boxAnnotations.filter((a) => (boxSelOf(a).diagramIndex ?? -1) === idx);
       const commentsEl = document.getElementById("dia-comments");
       commentsEl.innerHTML =
-        `<div class="dc-head"><div class="dc-title">本图评论 · ${list.length}</div><button class="dc-close" type="button" title="收起评论">×</button></div>` + (list.length
-          ? list.map((a, i) => `<div class="dc-item" data-i="${i}" title="点击编辑评论"><div class="dc-extract">▢ ${boxSelOf(a).extractedText || "（无文字）"}</div><div class="dc-body">${bodyOf(a) || "（空）"}</div></div>`).join("")
-          : `<div class="dc-empty">本图暂无评论</div>`);
+        `<div class="dc-head"><div class="dc-title">${t("diagramComments", { count: list.length })}</div><button class="dc-close" type="button" title="${t("hideComments")}">×</button></div>` + (list.length
+          ? list.map((a, i) => `<div class="dc-item" data-i="${i}" title="${t("commentPlaceholder")}"><div class="dc-extract">▢ ${boxSelOf(a).extractedText || `（${t("noText")}）`}</div><div class="dc-body">${bodyOf(a) || `（${t("empty")}）`}</div></div>`).join("")
+          : `<div class="dc-empty">${t("noDocComments")}</div>`);
       commentsEl.querySelector(".dc-close")?.addEventListener("click", hideDiaComments);
       for (const item of commentsEl.querySelectorAll(".dc-item")) {
         item.addEventListener("click", () => {
@@ -1375,23 +1943,8 @@
     diaStage.addEventListener("wheel", (e) => {
       if (!dia.svg) return;
       e.preventDefault();
-      const r = diaStage.getBoundingClientRect();
-      const s = diaScale();
-      const ox = (r.width - s * dia.vb.w) / 2;
-      const oy = (r.height - s * dia.vb.h) / 2;
-      const ux = dia.vb.x + (e.clientX - r.left - ox) / s;
-      const uy = dia.vb.y + (e.clientY - r.top - oy) / s;
       // 指数缩放，幅度正比 deltaY；触控板捏合（ctrlKey）高灵敏；viewBox 缩放 = 矢量级清晰
-      let f = Math.exp(-e.deltaY * (e.ctrlKey ? 0.012 : 0.0024));
-      const total = (dia.vb0.w / dia.vb.w) * f;
-      if (total > 30) f *= 30 / total;
-      if (total < 0.15) f *= 0.15 / total;
-      dia.vb.w /= f;
-      dia.vb.h /= f;
-      // 光标锚定：缩放前后光标指向的内容点不动
-      dia.vb.x = ux - (ux - dia.vb.x) / f;
-      dia.vb.y = uy - (uy - dia.vb.y) / f;
-      diaSetVb();
+      zoomDiagramAt(e.clientX, e.clientY, Math.exp(-e.deltaY * (e.ctrlKey ? 0.012 : 0.0024)));
     }, { passive: false });
 
     diaStage.addEventListener("pointerdown", (e) => {
@@ -1399,22 +1952,41 @@
       if (dia.boxMode || isTextTarget(e)) return;
       e.preventDefault();
       window.getSelection()?.removeAllRanges();
+      diaPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (diaPointers.size >= 2) {
+        dia.drag = null;
+        diaStage.classList.remove("dragging");
+        diaPinchDist = pointerPair(diaPointers)?.dist ?? null;
+        try { diaStage.setPointerCapture(e.pointerId); } catch {}
+        return;
+      }
       dia.drag = { px: e.clientX, py: e.clientY, x: dia.vb.x, y: dia.vb.y, s: diaScale() };
       diaStage.classList.add("dragging");
       document.body.style.userSelect = "none";
       try { diaStage.setPointerCapture(e.pointerId); } catch {}
     });
     diaStage.addEventListener("pointermove", (e) => {
+      if (diaPointers.has(e.pointerId)) diaPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (diaPointers.size >= 2) {
+        const pair = pointerPair(diaPointers);
+        if (pair && diaPinchDist) zoomDiagramAt(pair.x, pair.y, pair.dist / diaPinchDist);
+        diaPinchDist = pair?.dist ?? null;
+        return;
+      }
       if (!dia.drag) return;
       dia.vb.x = dia.drag.x - (e.clientX - dia.drag.px) / dia.drag.s;
       dia.vb.y = dia.drag.y - (e.clientY - dia.drag.py) / dia.drag.s;
       diaSetVb();
     });
-    diaStage.addEventListener("pointerup", () => {
+    function endDiaPointer(e) {
+      diaPointers.delete(e.pointerId);
+      if (diaPointers.size < 2) diaPinchDist = null;
       dia.drag = null;
       diaStage.classList.remove("dragging");
       document.body.style.userSelect = "";
-    });
+    }
+    diaStage.addEventListener("pointerup", endDiaPointer);
+    diaStage.addEventListener("pointercancel", endDiaPointer);
     diaStage.addEventListener("dblclick", (e) => {
       if (!isTextTarget(e)) diaReset();
     });
@@ -1529,7 +2101,7 @@
       const mainEl = document.getElementById("main");
       const hostRect = mainEl.getBoundingClientRect();
       selTools.classList.remove("copied");
-      selCopyBtn.title = "复制选中文本";
+      selCopyBtn.title = t("copySelection");
       selTools.style.display = "flex";
       selTools.style.visibility = "hidden";
       const toolW = selTools.offsetWidth || 64;
@@ -1549,7 +2121,7 @@
       selTools.style.display = "none";
       selTools.style.visibility = "";
       selTools.classList.remove("copied");
-      selCopyBtn.title = "复制选中文本";
+      selCopyBtn.title = t("copySelection");
       pendingSelection = null;
     }
 
@@ -1630,13 +2202,13 @@
       try {
         await copyText(text);
         selTools.classList.add("copied");
-        selCopyBtn.title = "已复制";
+        selCopyBtn.title = t("copied");
         setTimeout(() => {
           selTools.classList.remove("copied");
-          selCopyBtn.title = "复制选中文本";
+          selCopyBtn.title = t("copySelection");
         }, 1200);
       } catch (err) {
-        console.error("选中文本复制失败", err);
+        console.error("selection copy failed", err);
       }
     });
     selCommentBtn.addEventListener("click", () => {
@@ -1701,11 +2273,11 @@
       try {
         await r.setAnnotations(allLoaded.filter((a) => !isBoxAnno(a)));
       } catch (err) {
-        console.error("文字批注锚定失败", err);
+        console.error("text annotation anchoring failed", err);
       }
       renderComments();
     } catch (err) {
-      console.error("批注加载失败", err);
+      console.error("annotation load failed", err);
     }
 
     async function applyServerState(state) {
@@ -1716,7 +2288,7 @@
       try {
         await r.setAnnotations(allState.filter((a) => !isBoxAnno(a)));
       } catch (err) {
-        console.error("文字批注锚定失败", err);
+        console.error("text annotation anchoring failed", err);
       }
       renderComments();
     }
@@ -1737,10 +2309,10 @@
         // Annotation state changed elsewhere. Drop this stale full-list write
         // and re-render from the latest server state.
         await applyServerState(await res.json());
-        alert("批注已在别处更新，本次操作未保存。页面已同步最新批注，如仍需要请重新操作。");
+        alert(t("saveConflict"));
         return;
       }
-      alert("批注保存失败");
+      alert(t("saveFailed"));
     }
     persistFn = persist;
 
@@ -1796,7 +2368,7 @@
     function openDiaBoxEditor(target, value, anchorRect) {
       const sel = target.annotation ? boxSelOf(target.annotation) : target;
       diaBoxTarget = target;
-      diaBoxExtract.textContent = `框选到：${sel.extractedText || "（框内无文字）"}`;
+      diaBoxExtract.textContent = t("boxExtract", { text: sel.extractedText || `（${t("noBoxText")}）` });
       diaBoxTa.value = value ?? "";
       const left = anchorRect?.left ?? 8;
       const bottom = anchorRect?.bottom ?? 8;
