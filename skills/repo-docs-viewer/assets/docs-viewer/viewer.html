@@ -285,6 +285,8 @@
     color: var(--text-soft);
   }
   .ctl-btn { border: 1px solid var(--border-strong); border-radius: 6px; cursor: pointer; font: 12px/1.4 system-ui; padding: 2px 8px; min-width: 36px; }
+  .ctl-btn.icon-btn { width: 34px; min-width: 34px; padding-inline: 0; display: inline-flex; align-items: center; justify-content: center; }
+  .ctl-btn svg { width: 15px; height: 15px; flex: none; stroke: currentColor; }
   .zoom-ctl { border-color: var(--border-strong); background: var(--surface); }
   .zoom-ctl button { background: transparent; border-right-color: var(--border-soft); }
   #cmt-count { background: var(--surface-muted); color: var(--text-muted); }
@@ -529,7 +531,7 @@
   <div id="resizer" title="拖拽调整宽度 · 双击复位"></div>
   <div id="main">
     <div class="topbar"><button id="toggle" title="收起/展开目录">☰</button><span id="docname">选择左侧文档</span>
-      <div class="top-actions"><button id="view-toggle" class="ctl-btn" type="button">Auto View</button><button id="lang-toggle" class="ctl-btn" type="button">中</button><button id="theme-toggle" class="ctl-btn" type="button">系统</button></div>
+      <div class="top-actions"><button id="view-toggle" class="ctl-btn icon-btn" type="button">Auto View</button><button id="lang-toggle" class="ctl-btn" type="button">中</button><button id="theme-toggle" class="ctl-btn icon-btn" type="button">系统</button></div>
       <div class="zoom-ctl"><button id="zoom-out" title="缩小字号">A−</button><button id="zoom-pct" title="点击复原 100%">100%</button><button id="zoom-in" title="放大字号">A+</button></div></div>
     <div id="pin-peek" role="navigation" aria-label="置顶"><div class="pin-peek-head">置顶</div><div id="pin-peek-list"></div></div>
     <button id="outline-peek-trigger" type="button" title="大纲" aria-label="大纲"></button>
@@ -719,15 +721,28 @@
   function resolvedView(mode = viewMode) {
     return mode === "mobile" || (mode === "auto" && uaPrefersMobile()) ? "mobile" : "desktop";
   }
+  function iconSvg(name) {
+    const attrs = `aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"`;
+    const icons = {
+      autoView: `<svg ${attrs}><rect x="3" y="5" width="12" height="9" rx="1.5"></rect><path d="M7 18h4"></path><path d="M9 14v4"></path><rect x="17" y="8" width="4" height="9" rx="1"></rect><path d="M19 19v.01"></path></svg>`,
+      desktopView: `<svg ${attrs}><rect x="3" y="5" width="18" height="12" rx="2"></rect><path d="M8 21h8"></path><path d="M12 17v4"></path></svg>`,
+      mobileView: `<svg ${attrs}><rect x="7" y="2" width="10" height="20" rx="2"></rect><path d="M11 18h2"></path></svg>`,
+      themeSystem: `<svg ${attrs}><circle cx="12" cy="12" r="8"></circle><path d="M12 4a8 8 0 0 1 0 16z"></path></svg>`,
+      themeLight: `<svg ${attrs}><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg>`,
+      themeDark: `<svg ${attrs}><path d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5 7 7 0 1 0 20.5 14.5z"></path></svg>`,
+    };
+    return icons[name] ?? "";
+  }
   function applyViewMode(mode = viewMode, { resetSide = false } = {}) {
     viewMode = VIEW_ORDER.includes(mode) ? mode : "auto";
     const view = resolvedView(viewMode);
     localStorage.setItem(VIEW_KEY, viewMode);
     document.documentElement.dataset.viewMode = viewMode;
     document.documentElement.dataset.view = view;
-    viewToggle.textContent = t(viewMode === "mobile" ? "viewMobile" : viewMode === "desktop" ? "viewDesktop" : "viewAuto");
-    viewToggle.title = t("toggleView");
-    viewToggle.setAttribute("aria-label", t("toggleView"));
+    const label = t(viewMode === "mobile" ? "viewMobile" : viewMode === "desktop" ? "viewDesktop" : "viewAuto");
+    viewToggle.innerHTML = iconSvg(viewMode === "mobile" ? "mobileView" : viewMode === "desktop" ? "desktopView" : "autoView");
+    viewToggle.title = label;
+    viewToggle.setAttribute("aria-label", `${label}. ${t("toggleView")}`);
     if (resetSide || localStorage.getItem(SIDE_KEY) === null) app.classList.toggle("no-side", view === "mobile");
   }
   function resolvedTheme(mode = themeMode) {
@@ -738,8 +753,10 @@
     localStorage.setItem(THEME_KEY, mode);
     document.documentElement.dataset.themeMode = mode;
     document.documentElement.dataset.theme = resolvedTheme(mode);
-    themeToggle.textContent = t(mode === "dark" ? "themeDark" : mode === "light" ? "themeLight" : "themeSystem");
-    themeToggle.title = t("toggleTheme");
+    const label = t(mode === "dark" ? "themeDark" : mode === "light" ? "themeLight" : "themeSystem");
+    themeToggle.innerHTML = iconSvg(mode === "dark" ? "themeDark" : mode === "light" ? "themeLight" : "themeSystem");
+    themeToggle.title = label;
+    themeToggle.setAttribute("aria-label", `${label}. ${t("toggleTheme")}`);
     if (reload) {
       saveDocScroll();
       location.reload();
@@ -757,6 +774,7 @@
     };
     langToggle.textContent = t("langSwitch");
     langToggle.title = t("switchLanguage");
+    langToggle.setAttribute("aria-label", t("switchLanguage"));
     toggleBtn.title = t("toggleSide");
     document.getElementById("docname").textContent = docName || t("chooseDoc");
     setTabLabel("files", "files");
