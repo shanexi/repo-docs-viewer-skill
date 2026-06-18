@@ -5,7 +5,8 @@
 // Usage: node tools/docs-viewer/server.mjs
 //        DOCS_DIR=docs/some-topic node tools/docs-viewer/server.mjs
 import { createServer } from "node:http";
-import { readFileSync, readdirSync, writeFileSync, existsSync, statSync } from "node:fs";
+import { readFileSync, readdirSync, writeFileSync, existsSync, statSync, mkdirSync } from "node:fs";
+import { homedir } from "node:os";
 import { basename, extname, join, dirname, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -13,6 +14,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const DOCS_DIR = resolve(process.env.DOCS_DIR ?? join(__dirname, "..", "..", "docs"));
 const ASSETS_DIR = resolve(process.env.ASSETS_DIR ?? DOCS_DIR);
 const PORT = Number(process.env.PORT ?? 4642);
+const STATE_DIR = resolve(process.env.DOCS_VIEWER_STATE_DIR ?? join(homedir(), ".repo-docs-viewer"));
+const STATE_FILE = join(STATE_DIR, "state.json");
 const IMAGE_MIME = new Map([
   [".avif", "image/avif"],
   [".gif", "image/gif"],
@@ -165,6 +168,46 @@ function send(res, status, body, type = "application/json; charset=utf-8") {
   res.end(body);
 }
 
+function readStateFile() {
+  try {
+    return JSON.parse(readFileSync(STATE_FILE, "utf8"));
+  } catch {
+    return {};
+  }
+}
+
+function safePrefsArray(value) {
+  return Array.isArray(value)
+    ? value.filter((item) => typeof item === "string"
+      && item.length > 0
+      && item.length < 1000
+      && !item.startsWith("/")
+      && !item.includes("\0")
+      && !item.split("/").includes(".."))
+    : [];
+}
+
+function readPrefs() {
+  const all = readStateFile();
+  const prefs = all[DOCS_DIR] ?? {};
+  return {
+    pins: safePrefsArray(prefs.pins),
+    pinOpenDirs: safePrefsArray(prefs.pinOpenDirs),
+  };
+}
+
+function writePrefs(prefs) {
+  const all = readStateFile();
+  all[DOCS_DIR] = {
+    pins: safePrefsArray(prefs.pins),
+    pinOpenDirs: safePrefsArray(prefs.pinOpenDirs),
+    updatedAt: new Date().toISOString(),
+  };
+  mkdirSync(STATE_DIR, { recursive: true });
+  writeFileSync(STATE_FILE, JSON.stringify(all, null, 2) + "\n");
+  return all[DOCS_DIR];
+}
+
 function treeJson() {
   return walkDocs().sort().map((path) => ({
     path,
@@ -182,6 +225,24 @@ const server = createServer((req, res) => {
   }
   if (path === "/api/tree") {
     return send(res, 200, JSON.stringify({ root: DOCS_DIR.split(sep).slice(-1)[0], docs: treeJson() }));
+  }
+  if (path === "/api/prefs") {
+    if (req.method === "GET") {
+      return send(res, 200, JSON.stringify({ root: DOCS_DIR.split(sep).slice(-1)[0], prefs: readPrefs() }));
+    }
+    if (req.method === "POST") {
+      let body = "";
+      req.on("data", (chunk) => { body += chunk; });
+      req.on("end", () => {
+        try {
+          const parsed = JSON.parse(body);
+          send(res, 200, JSON.stringify({ ok: true, prefs: writePrefs(parsed) }));
+        } catch (err) {
+          send(res, 400, JSON.stringify({ error: String(err) }));
+        }
+      });
+      return;
+    }
   }
   if (path.startsWith("/d/")) {
     return safeDocName(path.slice(3))

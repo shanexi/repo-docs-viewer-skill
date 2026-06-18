@@ -69,12 +69,14 @@ sample_rel="${sample_md#"$docs_dir"/}"
 sample_url="$(node -e 'console.log(process.argv[1].split("/").map(encodeURIComponent).join("/"))' "$sample_rel")"
 
 log_file="$(mktemp /tmp/repo-docs-viewer.XXXXXX.log)"
-DOCS_DIR="$docs_dir" ASSETS_DIR="$assets_dir" PORT="$port" node "$server" >"$log_file" 2>&1 &
+state_dir="$(mktemp -d /tmp/repo-docs-viewer-state.XXXXXX)"
+DOCS_VIEWER_STATE_DIR="$state_dir" DOCS_DIR="$docs_dir" ASSETS_DIR="$assets_dir" PORT="$port" node "$server" >"$log_file" 2>&1 &
 server_pid=$!
 cleanup() {
   kill "$server_pid" >/dev/null 2>&1 || true
   wait "$server_pid" >/dev/null 2>&1 || true
   rm -f "$log_file"
+  rm -rf "$state_dir"
 }
 trap cleanup EXIT
 
@@ -92,6 +94,7 @@ done
 
 curl -fsS "$base_url/" >/dev/null
 curl -fsS "$base_url/api/tree" >/dev/null
+curl -fsS "$base_url/api/prefs" >/dev/null
 curl -fsS --path-as-is "$base_url/raw/$sample_url" >/dev/null
 
 traversal_code="$(curl -sS -o /dev/null -w '%{http_code}' --path-as-is "$base_url/raw/%2e%2e/package.json" || true)"

@@ -567,6 +567,25 @@
   const langToggle = document.getElementById("lang-toggle");
   const themeToggle = document.getElementById("theme-toggle");
   const sideScrim = document.getElementById("side-scrim");
+  function readStorageArray(key, fallback = []) {
+    const raw = localStorage.getItem(key);
+    if (raw === null) return fallback;
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : fallback;
+    } catch {
+      return fallback;
+    }
+  }
+  async function loadServerPrefs() {
+    try {
+      const res = await fetch("/api/prefs");
+      if (!res.ok) return {};
+      return (await res.json()).prefs ?? {};
+    } catch {
+      return {};
+    }
+  }
   const I18N = {
     zh: {
       langName: "中文",
@@ -1247,9 +1266,32 @@
   });
 
   const PIN_OPEN_KEY = "docs-viewer:pins-open";
-  const pins = new Set(JSON.parse(localStorage.getItem(PIN_KEY) ?? "[]"));
-  const openDirs = new Set(JSON.parse(localStorage.getItem(OPEN_KEY) ?? "[]"));
-  const pinOpenDirs = new Set(JSON.parse(localStorage.getItem(PIN_OPEN_KEY) ?? "[]"));
+  const serverPrefs = await loadServerPrefs();
+  const storedPinsRaw = localStorage.getItem(PIN_KEY);
+  const storedPinOpenRaw = localStorage.getItem(PIN_OPEN_KEY);
+  const pins = new Set(readStorageArray(PIN_KEY, storedPinsRaw === null ? serverPrefs.pins ?? [] : []));
+  const openDirs = new Set(readStorageArray(OPEN_KEY));
+  const pinOpenDirs = new Set(readStorageArray(PIN_OPEN_KEY, storedPinOpenRaw === null ? serverPrefs.pinOpenDirs ?? [] : []));
+  if (storedPinsRaw === null && pins.size) localStorage.setItem(PIN_KEY, JSON.stringify([...pins]));
+  if (storedPinOpenRaw === null && pinOpenDirs.size) localStorage.setItem(PIN_OPEN_KEY, JSON.stringify([...pinOpenDirs]));
+
+  let pinPrefsTimer = null;
+  function saveServerPinPrefs() {
+    clearTimeout(pinPrefsTimer);
+    pinPrefsTimer = setTimeout(() => {
+      fetch("/api/prefs", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ pins: [...pins], pinOpenDirs: [...pinOpenDirs] }),
+      }).catch((err) => console.error("pin prefs save failed", err));
+    }, 100);
+  }
+  function persistPinPrefs() {
+    localStorage.setItem(PIN_KEY, JSON.stringify([...pins]));
+    localStorage.setItem(PIN_OPEN_KEY, JSON.stringify([...pinOpenDirs]));
+    saveServerPinPrefs();
+  }
+  if (storedPinsRaw !== null || storedPinOpenRaw !== null) saveServerPinPrefs();
 
   function ancestorsOf(path) {
     const out = [];
@@ -1328,6 +1370,21 @@
     return node;
   }
 
+  let removedStalePins = false;
+  for (const p of [...pins]) {
+    if (!countByPath.has(p) && !findDirNode(p)) {
+      pins.delete(p);
+      removedStalePins = true;
+    }
+  }
+  for (const p of [...pinOpenDirs]) {
+    if (!findDirNode(p)) {
+      pinOpenDirs.delete(p);
+      removedStalePins = true;
+    }
+  }
+  if (removedStalePins) persistPinPrefs();
+
   // 当前文档祖先目录自动展开：被置顶目录覆盖时只展开置顶区那份，主树保持原状
   //（避免上下两份同时铺开 + 滚动跳到主树副本的体验问题）
   if (docName) {
@@ -1404,8 +1461,7 @@
         pins.add(path);
         if (findDirNode(path)) pinOpenDirs.add(path); // 新置顶的目录默认展开
       }
-      localStorage.setItem(PIN_KEY, JSON.stringify([...pins]));
-      localStorage.setItem(PIN_OPEN_KEY, JSON.stringify([...pinOpenDirs]));
+      persistPinPrefs();
       renderPins();
       return;
     }
@@ -1421,7 +1477,8 @@
       const inPins = !!dirRow.closest("#pins");
       const set = inPins ? pinOpenDirs : openDirs;
       if (set.has(dir)) { set.delete(dir); } else { set.add(dir); }
-      localStorage.setItem(inPins ? PIN_OPEN_KEY : OPEN_KEY, JSON.stringify([...set]));
+      if (inPins) persistPinPrefs();
+      else localStorage.setItem(OPEN_KEY, JSON.stringify([...set]));
       applyOpenState();
     }
   });
