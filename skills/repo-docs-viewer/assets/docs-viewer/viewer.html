@@ -681,6 +681,23 @@
     const raw = I18N[lang]?.[key] ?? I18N.en[key] ?? key;
     return raw.replace(/\{(\w+)\}/g, (_, name) => vars[name] ?? "");
   }
+  function uiLangCode() {
+    return lang === "zh" ? "zh-CN" : "en";
+  }
+  function inferMarkdownLang(text) {
+    const cjk = (text.match(/[\u3040-\u30ff\u3400-\u9fff\uf900-\ufaff]/g) ?? []).length;
+    const latin = (text.match(/[A-Za-z]/g) ?? []).length;
+    return cjk >= Math.max(20, latin * 0.18) ? "zh-CN" : "en";
+  }
+  function applyUiLang() {
+    if (!document.documentElement.lang) {
+      document.documentElement.lang = navigator.language?.toLowerCase().startsWith("zh") ? "zh-CN" : "en";
+    }
+    document.documentElement.dataset.uiLang = lang;
+    for (const selector of ["#sidebar", ".topbar", "#anno-pop", "#sel-tools", "#find-bar", "#img-overlay", "#dia-overlay"]) {
+      document.querySelector(selector)?.setAttribute("lang", uiLangCode());
+    }
+  }
   function uaPrefersMobile() {
     const ua = navigator.userAgent || "";
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(ua)
@@ -716,7 +733,7 @@
     }
   }
   function applyChromeText() {
-    document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
+    applyUiLang();
     applyViewMode(viewMode);
     langToggle.textContent = t("langSwitch");
     langToggle.title = t("switchLanguage");
@@ -1749,6 +1766,7 @@
     syncOutlineActiveNow = () => {};
     syncOutlinePeekPosition = () => {};
     renderComments();
+    contentEl.lang = uiLangCode();
     contentEl.innerHTML = `<p style="color:var(--text-faint)">${t("homeCopy")}</p>`;
   } else {
     document.getElementById("docname").textContent = docName;
@@ -1767,6 +1785,7 @@
     const initRecogito = window.Recogito?.init ?? recogitoMod.init ?? recogitoMod.default?.init ?? recogitoMod.Recogito?.init;
 
     const md = await (await fetch(`/raw/${encodeURI(docName)}`)).text();
+    contentEl.lang = inferMarkdownLang(md);
     const html = String(
       await unified()
         .use(remarkParse.default)
