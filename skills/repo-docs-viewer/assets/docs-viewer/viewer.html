@@ -145,11 +145,11 @@
   #sel-tools button:hover { color: #3b3a35; background: #f0eee5; border-color: #e2e0d8; }
   #sel-tools button svg { width: 15px; height: 15px; }
   #sel-tools.copied #sel-copy { color: #2f7d4b; background: #edf7ef; border-color: #cfe8d6; }
-  .side-tabs { display: flex; gap: 6px; padding: 0 12px 8px; }
-  .stab { position: relative; flex: 1; min-width: 0; height: 32px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; border: 1px solid #e2e0d8; background: #fff; border-radius: 7px; padding: 0; cursor: pointer; font: 12px system-ui; color: #56554e; }
-  .stab svg { width: 15px; height: 15px; flex: none; stroke: currentColor; }
+  .side-tabs { display: flex; justify-content: flex-start; gap: 8px; padding: 0 16px 8px; }
+  .stab { position: relative; flex: 0 0 32px; width: 32px; min-width: 0; height: 30px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; border: 1px solid #e2e0d8; background: #fff; border-radius: 7px; padding: 0; cursor: pointer; font: 12px system-ui; color: #56554e; }
+  .stab svg { width: 13px; height: 13px; flex: none; stroke: currentColor; }
   .stab-text { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
-  #cmt-count { display: inline-flex; align-items: center; justify-content: center; min-width: 14px; height: 14px; padding: 0 4px; border-radius: 999px; background: color-mix(in srgb, #d97757 14%, transparent); color: #8a5a44; font: 600 10px/14px system-ui; }
+  #cmt-count { position: absolute; top: 3px; right: 3px; display: inline-flex; align-items: center; justify-content: center; min-width: 12px; height: 12px; padding: 0 3px; border-radius: 999px; background: color-mix(in srgb, #d97757 14%, transparent); color: #8a5a44; font: 600 9px/12px system-ui; }
   #cmt-count:empty { display: none; }
   .stab.on { background: #e9e5d8; border-color: #d6d2c4; font-weight: 500; }
   .cmt { margin: 6px 12px; padding: 8px 10px; background: #fff; border: 1px solid #e8e6df; border-radius: 8px; cursor: pointer; font: 12px/1.6 system-ui; }
@@ -429,8 +429,10 @@
   html[data-view="mobile"] .side-head { padding: 10px 14px 12px; font-size: 16px; }
   html[data-view="mobile"] .side-head .n { font-size: 13px; }
   html[data-view="mobile"] .sec-label { padding: 12px 14px 5px; font-size: 12px; }
-  html[data-view="mobile"] .side-tabs { padding-inline: 10px; }
-  html[data-view="mobile"] .stab { min-height: 42px; font-size: 16px; }
+  html[data-view="mobile"] .side-tabs { justify-content: stretch; padding-inline: 10px; gap: 6px; }
+  html[data-view="mobile"] .stab { flex: 1 1 0; width: auto; min-height: 42px; font-size: 16px; }
+  html[data-view="mobile"] .stab svg { width: 17px; height: 17px; }
+  html[data-view="mobile"] #cmt-count { position: static; min-width: 16px; height: 16px; padding: 0 5px; font: 600 10px/16px system-ui; }
   html[data-view="mobile"] .t-row { min-height: 42px; font-size: 15px; line-height: 1.45; padding-right: 12px; }
   html[data-view="mobile"] #pins .t-row .name { font-size: 14px; }
   html[data-view="mobile"] .ol-item { min-height: 40px; padding: 8px 14px; font-size: clamp(13px, calc(15px * var(--zoom, 1)), 22px); line-height: 1.35; }
