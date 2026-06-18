@@ -1692,7 +1692,9 @@
     if (!el) return;
     const mainRect = mainEl.getBoundingClientRect();
     const rect = el.getBoundingClientRect();
-    mainEl.scrollBy({ top: rect.top - mainRect.top - topbarOffset(), behavior });
+    const top = rect.top - mainRect.top - topbarOffset();
+    const nextBehavior = behavior === "smooth" && Math.abs(top) > mainEl.clientHeight * 1.4 ? "auto" : behavior;
+    mainEl.scrollBy({ top, behavior: nextBehavior });
   }
 
   function scrollToCurrent() {
@@ -1863,22 +1865,59 @@
         if (!outlinePeek.classList.contains("show")) return;
         outlinePeekList.querySelector(`[data-i="${activeOutlineIndex}"]`)?.scrollIntoView({ block: "center" });
       };
+      let headingTops = [];
+      let metricsScheduled = false;
       let spyScheduled = false;
-      const syncOutlineActive = () => {
-        const limit = mainEl.getBoundingClientRect().top + 90;
+      let renderedOutlineIndex = -1;
+      const refreshOutlineMetrics = () => {
+        const mainTop = mainEl.getBoundingClientRect().top;
+        headingTops = headings.map((h) => h.getBoundingClientRect().top - mainTop + mainEl.scrollTop);
+      };
+      const activeHeadingFromScroll = () => {
+        if (!headingTops.length) refreshOutlineMetrics();
+        const y = mainEl.scrollTop + topbarOffset();
+        let lo = 0;
+        let hi = headingTops.length - 1;
         let active = 0;
-        headings.forEach((h, i) => { if (h.getBoundingClientRect().top <= limit) active = i; });
+        while (lo <= hi) {
+          const mid = (lo + hi) >> 1;
+          if (headingTops[mid] <= y) {
+            active = mid;
+            lo = mid + 1;
+          } else {
+            hi = mid - 1;
+          }
+        }
+        return active;
+      };
+      const syncOutlineActive = () => {
+        const active = activeHeadingFromScroll();
         activeOutlineIndex = active;
+        if (active === renderedOutlineIndex) return;
+        renderedOutlineIndex = active;
         syncMiniOutline(active);
         for (const list of [outlineEl, outlinePeekList]) {
           for (const el of list.children) {
             const on = Number(el.dataset.i) === active;
             el.classList.toggle("active", on);
-            if (on && list === outlineEl) el.scrollIntoView({ block: "nearest" });
           }
         }
       };
-      syncOutlineActiveNow = syncOutlineActive;
+      const scheduleOutlineMetricsRefresh = () => {
+        if (metricsScheduled) return;
+        metricsScheduled = true;
+        requestAnimationFrame(() => {
+          metricsScheduled = false;
+          refreshOutlineMetrics();
+          syncOutlineActive();
+        });
+      };
+      const outlineResizeObserver = new ResizeObserver(scheduleOutlineMetricsRefresh);
+      outlineResizeObserver.observe(contentEl);
+      syncOutlineActiveNow = () => {
+        refreshOutlineMetrics();
+        syncOutlineActive();
+      };
       mainEl.addEventListener("scroll", () => {
         if (spyScheduled) return;
         spyScheduled = true;
@@ -1887,6 +1926,7 @@
           syncOutlineActive();
         });
       });
+      refreshOutlineMetrics();
       syncOutlineActive();
     }
 
