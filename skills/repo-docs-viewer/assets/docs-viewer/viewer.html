@@ -1474,7 +1474,7 @@
     if (!content) return;
     content.querySelectorAll(".mermaid").forEach((holder) => {
       const idx = Number(holder.dataset.diagramIndex);
-      const n = boxAnnotations.filter((a) => (boxSelOf(a).diagramIndex ?? -1) === idx).length;
+      const n = boxAnnotations.filter((a) => hasCommentBody(a) && (boxSelOf(a).diagramIndex ?? -1) === idx).length;
       let badge = holder.querySelector(".mm-box-badge");
       if (n > 0) {
         if (!badge) {
@@ -1498,6 +1498,14 @@
     return (a?.body ?? []).map((b) => b.value).filter(Boolean).join("\n");
   }
 
+  function hasCommentBody(a) {
+    return bodyOf(a).trim().length > 0;
+  }
+
+  function isVisibleComment(a) {
+    return hasCommentBody(a);
+  }
+
   function commentDocTop(it) {
     const mermaidEls = document.querySelectorAll("#content .mermaid");
     const el = it.box
@@ -1509,14 +1517,15 @@
   function collectCommentItems() {
     const textItems = recogito ? recogito.getAnnotations() : [];
     const byId = new Map();
-    for (const a of annotationCache) byId.set(a.id, a);
-    for (const a of textItems) byId.set(a.id, a);
-    for (const a of boxAnnotations) byId.set(a.id, a);
+    for (const a of annotationCache.filter(isVisibleComment)) byId.set(a.id, a);
+    for (const a of textItems.filter(hasCommentBody)) byId.set(a.id, a);
+    for (const a of boxAnnotations.filter(hasCommentBody)) byId.set(a.id, a);
     return itemsFromAnnotations([...byId.values()]);
   }
 
   function itemsFromAnnotations(annotations) {
     return (annotations ?? [])
+      .filter(isVisibleComment)
       .map((a, index) => ({ a, box: isBoxAnno(a), index }))
       .sort((a, b) => (commentDocTop(a) - commentDocTop(b)) || (a.index - b.index));
   }
@@ -1525,7 +1534,7 @@
     if (!docName) return [];
     try {
       const state = await (await fetch(`/api/annotations/${encodeURI(docName)}`)).json();
-      if (Array.isArray(state.annotations)) return itemsFromAnnotations(state.annotations);
+      if (Array.isArray(state.annotations)) return itemsFromAnnotations(state.annotations.filter(isVisibleComment));
     } catch (err) {
       console.error("annotation export read failed", err);
     }
@@ -2228,6 +2237,8 @@
     let nativeSelectionTimer = null;
     let suppressSelectionToolsUntil = 0;
     let selectionToolsShownAt = 0;
+    let textPointer = null;
+    let ignoreContentClickUntil = 0;
 
     function openPop(anchorRect, value) {
       const mainEl = document.getElementById("main");
@@ -2359,12 +2370,12 @@
       r.selectAnnotation();
       clearSelectionSpans();
     }
-    function dismissSelectionTools({ suppress = true } = {}) {
+    function dismissSelectionTools({ suppress = true, suppressMs = 260 } = {}) {
       const hadTransientSelection = selTools.style.display === "flex"
         || !!pendingSelection
         || !!selectedText()
         || !!contentEl.querySelector(".r6o-selection");
-      if (suppress && hadTransientSelection) suppressSelectionToolsUntil = performance.now() + 350;
+      if (suppress && hadTransientSelection) suppressSelectionToolsUntil = performance.now() + suppressMs;
       hideSelectionTools();
       clearSelectionState();
     }
@@ -2403,16 +2414,21 @@
 
     function scheduleNativeSelectionTools() {
       clearTimeout(nativeSelectionTimer);
+      if (textPointer) return;
       nativeSelectionTimer = setTimeout(showNativeSelectionTools, 40);
     }
     contentEl.addEventListener("mouseup", scheduleNativeSelectionTools);
     contentEl.addEventListener("keyup", scheduleNativeSelectionTools);
     document.addEventListener("selectionchange", () => {
       if (document.activeElement === popTa) return;
+      if (textPointer && selectedText()) textPointer.hadTextSelection = true;
       scheduleNativeSelectionTools();
     });
 
     r.on("selectAnnotation", (annotation, element) => {
+      pendingSelection = null;
+      window.getSelection()?.removeAllRanges();
+      clearSelectionSpans();
       hideSelectionTools();
       popTarget = { kind: "annotation", payload: annotation };
       const value = (annotation.body ?? []).map((b) => b.value).filter(Boolean).join("\n");
@@ -2489,9 +2505,29 @@
     function isSelectionControlTarget(target) {
       return !!target?.closest?.("#sel-tools, #anno-pop");
     }
+    contentEl.addEventListener("pointerdown", (e) => {
+      if (isSelectionControlTarget(e.target) || e.target.closest?.(".r6o-annotation")) return;
+      textPointer = { x: e.clientX, y: e.clientY, hadTextSelection: false };
+    }, { capture: true });
+    contentEl.addEventListener("pointerup", (e) => {
+      if (!textPointer) return;
+      const moved = Math.hypot(e.clientX - textPointer.x, e.clientY - textPointer.y) > 4;
+      if (textPointer.hadTextSelection || (moved && selectedText())) {
+        ignoreContentClickUntil = performance.now() + 320;
+        showNativeSelectionTools();
+      }
+      textPointer = null;
+    }, { capture: true });
+    contentEl.addEventListener("pointercancel", () => { textPointer = null; }, { capture: true });
     const dismissSelectionOnOutsidePress = (e) => {
       if (isSelectionControlTarget(e.target)) return;
-      if (e.type === "click" && e.target.closest?.(".r6o-annotation")) return;
+      if (e.target.closest?.(".r6o-annotation")) return;
+      const inContent = !!e.target.closest?.("#content");
+      if (e.type === "click" && inContent && performance.now() < ignoreContentClickUntil) return;
+      if (e.type !== "click" && inContent) {
+        if (pop.style.display === "block") closePop();
+        return;
+      }
       if (e.type === "click" && performance.now() - selectionToolsShownAt < 120) return;
       if (pop.style.display === "block") {
         closePop();
@@ -2499,12 +2535,11 @@
       }
       dismissSelectionTools();
     };
-    for (const type of ["pointerdown", "mousedown", "touchstart", "click"]) {
+    for (const type of ["pointerdown", "touchstart", "click"]) {
       document.addEventListener(type, dismissSelectionOnOutsidePress, { capture: true });
     }
     document.getElementById("main").addEventListener("mousedown", (e) => {
       if (pop.style.display === "block" && !pop.contains(e.target)) closePop();
-      if (selTools.style.display === "flex" && !selTools.contains(e.target)) dismissSelectionTools();
     });
     document.addEventListener("keydown", (e) => {
       if (e.key !== "Escape") return;
@@ -2518,11 +2553,11 @@
     try {
       const saved = await (await fetch(annoUrl)).json();
       annoBase = saved.updatedAt ?? null;
-      const allLoaded = saved.annotations ?? [];
+      const allLoaded = (saved.annotations ?? []).filter(isVisibleComment);
       annotationCache = allLoaded;
       boxAnnotations = allLoaded.filter(isBoxAnno);
       try {
-        await r.setAnnotations(allLoaded.filter((a) => !isBoxAnno(a)));
+        await r.setAnnotations(allLoaded.filter((a) => !isBoxAnno(a) && hasCommentBody(a)));
       } catch (err) {
         console.error("text annotation anchoring failed", err);
       }
@@ -2533,11 +2568,11 @@
 
     async function applyServerState(state) {
       annoBase = state.updatedAt ?? null;
-      const allState = state.annotations ?? [];
+      const allState = (state.annotations ?? []).filter(isVisibleComment);
       annotationCache = allState;
       boxAnnotations = allState.filter(isBoxAnno);
       try {
-        await r.setAnnotations(allState.filter((a) => !isBoxAnno(a)));
+        await r.setAnnotations(allState.filter((a) => !isBoxAnno(a) && hasCommentBody(a)));
       } catch (err) {
         console.error("text annotation anchoring failed", err);
       }
@@ -2545,7 +2580,10 @@
     }
 
     async function persist() {
-      const annotations = [...r.getAnnotations(), ...boxAnnotations];
+      const annotations = [
+        ...r.getAnnotations().filter((a) => !isBoxAnno(a) && hasCommentBody(a)),
+        ...boxAnnotations.filter(hasCommentBody),
+      ];
       const res = await fetch(annoUrl, {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -2579,7 +2617,29 @@
     document.addEventListener("visibilitychange", () => {
       if (!document.hidden) syncFromServer();
     });
-    r.on("createAnnotation", () => { persist(); renderComments(); });
+    async function discardEmptyTextAnnotations() {
+      const current = r.getAnnotations();
+      const kept = current.filter(hasCommentBody);
+      if (kept.length === current.length) return;
+      try {
+        await r.setAnnotations(kept);
+      } catch (err) {
+        console.error("empty annotation cleanup failed", err);
+      }
+      clearSelectionSpans();
+      renderComments();
+    }
+
+    r.on("createAnnotation", (annotation) => {
+      const hasEmptyTextAnnotation = r.getAnnotations().some((a) => !hasCommentBody(a));
+      if ((annotation && !hasCommentBody(annotation)) || (!annotation && hasEmptyTextAnnotation)) {
+        requestAnimationFrame(discardEmptyTextAnnotations);
+        renderComments();
+        return;
+      }
+      persist();
+      renderComments();
+    });
     r.on("updateAnnotation", () => { persist(); renderComments(); });
     // There is no delete affordance; do not persist unexpected library-level deletes.
     r.on("deleteAnnotation", () => { renderComments(); });

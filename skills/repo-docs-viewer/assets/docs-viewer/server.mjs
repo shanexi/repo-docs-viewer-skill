@@ -115,7 +115,16 @@ function splitDoc(name) {
   }
 }
 
+function annotationBody(annotation) {
+  return (annotation?.body ?? []).map((b) => b?.value).filter(Boolean).join("\n").trim();
+}
+
+function visibleAnnotations(annotations) {
+  return (annotations ?? []).filter((annotation) => annotationBody(annotation));
+}
+
 function writeAnnotations(name, annotations) {
+  annotations = visibleAnnotations(annotations);
   const { body } = splitDoc(name);
   const updatedAt = new Date().toISOString();
   // JSON 内出现 --> 会终结 HTML 注释；转义为等价的 \u003e 序列（JSON.parse 透明还原）
@@ -145,7 +154,7 @@ function walkDocs(dir = DOCS_DIR, rel = "") {
 
 function annotationCount(name) {
   try {
-    return splitDoc(name).annotations.length;
+    return visibleAnnotations(splitDoc(name).annotations).length;
   } catch {
     return 0;
   }
@@ -196,7 +205,7 @@ const server = createServer((req, res) => {
     if (!name) return send(res, 404, JSON.stringify({ error: "unknown doc" }));
     if (req.method === "GET") {
       const { annotations, updatedAt } = splitDoc(name);
-      return send(res, 200, JSON.stringify({ doc: name, updatedAt, annotations }));
+      return send(res, 200, JSON.stringify({ doc: name, updatedAt, annotations: visibleAnnotations(annotations) }));
     }
     if (req.method === "POST") {
       let body = "";
@@ -213,11 +222,12 @@ const server = createServer((req, res) => {
             return send(res, 409, JSON.stringify({
               error: "conflict",
               updatedAt: current.updatedAt,
-              annotations: current.annotations,
+              annotations: visibleAnnotations(current.annotations),
             }));
           }
-          const updatedAt = writeAnnotations(name, parsed.annotations);
-          send(res, 200, JSON.stringify({ ok: true, count: parsed.annotations.length, updatedAt }));
+          const annotations = visibleAnnotations(parsed.annotations);
+          const updatedAt = writeAnnotations(name, annotations);
+          send(res, 200, JSON.stringify({ ok: true, count: annotations.length, updatedAt }));
         } catch (err) {
           send(res, 400, JSON.stringify({ error: String(err) }));
         }
