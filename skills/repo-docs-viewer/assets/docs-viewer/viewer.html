@@ -516,7 +516,7 @@
   <div id="resizer" title="拖拽调整宽度 · 双击复位"></div>
   <div id="main">
     <div class="topbar"><button id="toggle" title="收起/展开目录">☰</button><span id="docname">选择左侧文档</span>
-      <div class="top-actions"><button id="view-toggle" class="ctl-btn" type="button">视图</button><button id="lang-toggle" class="ctl-btn" type="button">中</button><button id="theme-toggle" class="ctl-btn" type="button">系统</button></div>
+      <div class="top-actions"><button id="view-toggle" class="ctl-btn" type="button">Auto View</button><button id="lang-toggle" class="ctl-btn" type="button">中</button><button id="theme-toggle" class="ctl-btn" type="button">系统</button></div>
       <div class="zoom-ctl"><button id="zoom-out" title="缩小字号">A−</button><button id="zoom-pct" title="点击复原 100%">100%</button><button id="zoom-in" title="放大字号">A+</button></div></div>
     <div id="pin-peek" role="navigation" aria-label="置顶"><div class="pin-peek-head">置顶</div><div id="pin-peek-list"></div></div>
     <button id="outline-peek-trigger" type="button" title="大纲" aria-label="大纲"></button>
@@ -561,13 +561,14 @@
       themeLight: "亮",
       themeDark: "暗",
       toggleTheme: "切换主题：系统/亮/暗",
-      viewAuto: "视图",
-      viewMobile: "移动",
-      viewDesktop: "桌面",
+      viewAuto: "Auto View",
+      viewMobile: "Mobile",
+      viewDesktop: "Desktop",
       toggleView: "切换视图模式：自动/移动/桌面",
       toggleSide: "收起/展开目录",
       chooseDoc: "选择左侧文档",
       files: "文件",
+      docCount: "{count} 篇",
       outline: "大纲",
       comments: "评论",
       pinned: "置顶",
@@ -619,13 +620,14 @@
       themeLight: "Light",
       themeDark: "Dark",
       toggleTheme: "Toggle theme: system/light/dark",
-      viewAuto: "View",
+      viewAuto: "Auto View",
       viewMobile: "Mobile",
       viewDesktop: "Desktop",
       toggleView: "Toggle view mode: auto/mobile/desktop",
       toggleSide: "Toggle sidebar",
       chooseDoc: "Choose a document",
       files: "Files",
+      docCount: "{count} docs",
       outline: "Outline",
       comments: "Comments",
       pinned: "Pinned",
@@ -673,6 +675,7 @@
   let lang = localStorage.getItem(LANG_KEY) || (navigator.language?.toLowerCase().startsWith("zh") ? "zh" : "en");
   let themeMode = localStorage.getItem(THEME_KEY) || "system";
   let viewMode = localStorage.getItem(VIEW_KEY) || "auto";
+  let docTotal = null;
   if (!VIEW_ORDER.includes(viewMode)) viewMode = "auto";
   function t(key, vars = {}) {
     const raw = I18N[lang]?.[key] ?? I18N.en[key] ?? key;
@@ -720,6 +723,7 @@
     toggleBtn.title = t("toggleSide");
     document.getElementById("docname").textContent = docName || t("chooseDoc");
     document.querySelector('[data-tab="files"]').textContent = t("files");
+    if (docTotal !== null) document.getElementById("doccount").textContent = t("docCount", { count: docTotal });
     document.querySelector('[data-tab="outline"]').textContent = t("outline");
     document.querySelector('[data-tab="comments"]').childNodes[0].nodeValue = `${t("comments")} `;
     document.querySelector("#pins-sec .sec-label").textContent = t("pinned");
@@ -1204,7 +1208,8 @@
 
   const { root, docs } = await (await fetch("/api/tree")).json();
   document.getElementById("rootname").textContent = `${root}/`;
-  document.getElementById("doccount").textContent = `${docs.length} 篇`;
+  docTotal = docs.length;
+  document.getElementById("doccount").textContent = t("docCount", { count: docTotal });
   const countByPath = new Map(docs.map((d) => [d.path, d.count]));
   const initialCommentCount = docName ? (countByPath.get(docName) ?? 0) : 0;
   document.getElementById("cmt-count").textContent = initialCommentCount || "";
