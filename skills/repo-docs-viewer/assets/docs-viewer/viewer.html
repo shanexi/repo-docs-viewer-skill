@@ -145,8 +145,12 @@
   #sel-tools button:hover { color: #3b3a35; background: #f0eee5; border-color: #e2e0d8; }
   #sel-tools button svg { width: 15px; height: 15px; }
   #sel-tools.copied #sel-copy { color: #2f7d4b; background: #edf7ef; border-color: #cfe8d6; }
-  .side-tabs { display: flex; gap: 4px; padding: 0 12px 8px; }
-  .stab { flex: 1; border: 1px solid #e2e0d8; background: #fff; border-radius: 7px; padding: 4px 0; cursor: pointer; font: 12px system-ui; color: #56554e; }
+  .side-tabs { display: flex; gap: 6px; padding: 0 12px 8px; }
+  .stab { position: relative; flex: 1; min-width: 0; height: 32px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; border: 1px solid #e2e0d8; background: #fff; border-radius: 7px; padding: 0; cursor: pointer; font: 12px system-ui; color: #56554e; }
+  .stab svg { width: 15px; height: 15px; flex: none; stroke: currentColor; }
+  .stab-text { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+  #cmt-count { display: inline-flex; align-items: center; justify-content: center; min-width: 14px; height: 14px; padding: 0 4px; border-radius: 999px; background: color-mix(in srgb, #d97757 14%, transparent); color: #8a5a44; font: 600 10px/14px system-ui; }
+  #cmt-count:empty { display: none; }
   .stab.on { background: #e9e5d8; border-color: #d6d2c4; font-weight: 500; }
   .cmt { margin: 6px 12px; padding: 8px 10px; background: #fff; border: 1px solid #e8e6df; border-radius: 8px; cursor: pointer; font: 12px/1.6 system-ui; }
   .cmt:hover { border-color: #d97757; }
@@ -282,6 +286,7 @@
   .ctl-btn { border: 1px solid var(--border-strong); border-radius: 6px; cursor: pointer; font: 12px/1.4 system-ui; padding: 2px 8px; min-width: 36px; }
   .zoom-ctl { border-color: var(--border-strong); background: var(--surface); }
   .zoom-ctl button { background: transparent; border-right-color: var(--border-soft); }
+  #cmt-count { background: var(--surface-muted); color: var(--text-muted); }
   .ctl-btn:hover,
   #toggle:hover,
   .zoom-ctl button:hover,
@@ -503,9 +508,9 @@
   <aside id="sidebar">
     <div class="side-head"><a href="/" id="rootname">docs/</a><span class="n" id="doccount"></span></div>
     <div class="side-tabs">
-      <button class="stab on" data-tab="files">文件</button>
-      <button class="stab" data-tab="outline">大纲</button>
-      <button class="stab" data-tab="comments">评论 <span id="cmt-count"></span></button>
+      <button class="stab on" data-tab="files" type="button" title="文件" aria-label="文件"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path><path d="M8 13h8"></path><path d="M8 17h5"></path></svg><span class="stab-text">文件</span></button>
+      <button class="stab" data-tab="outline" type="button" title="大纲" aria-label="大纲"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h12"></path><path d="M8 12h12"></path><path d="M8 18h12"></path><path d="M4 6h.01"></path><path d="M4 12h.01"></path><path d="M4 18h.01"></path></svg><span class="stab-text">大纲</span></button>
+      <button class="stab" data-tab="comments" type="button" title="评论" aria-label="评论"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path></svg><span class="stab-text">评论</span><span id="cmt-count"></span></button>
     </div>
     <div id="panel-outline" style="display:none"><div id="outline-list"></div></div>
     <div id="panel-files">
@@ -738,14 +743,21 @@
   function applyChromeText() {
     applyUiLang();
     applyViewMode(viewMode);
+    const setTabLabel = (name, key) => {
+      const tab = document.querySelector(`[data-tab="${name}"]`);
+      const label = t(key);
+      tab.title = label;
+      tab.setAttribute("aria-label", label);
+      tab.querySelector(".stab-text").textContent = label;
+    };
     langToggle.textContent = t("langSwitch");
     langToggle.title = t("switchLanguage");
     toggleBtn.title = t("toggleSide");
     document.getElementById("docname").textContent = docName || t("chooseDoc");
-    document.querySelector('[data-tab="files"]').textContent = t("files");
+    setTabLabel("files", "files");
     if (docTotal !== null) document.getElementById("doccount").textContent = t("docCount", { count: docTotal });
-    document.querySelector('[data-tab="outline"]').textContent = t("outline");
-    document.querySelector('[data-tab="comments"]').childNodes[0].nodeValue = `${t("comments")} `;
+    setTabLabel("outline", "outline");
+    setTabLabel("comments", "comments");
     document.querySelector("#pins-sec .sec-label").textContent = t("pinned");
     document.querySelector("#panel-files > .sec-label").textContent = t("files");
     document.querySelector(".pin-peek-head").textContent = t("pinned");
