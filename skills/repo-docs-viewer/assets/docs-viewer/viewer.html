@@ -7,8 +7,16 @@
   (() => {
     const mode = localStorage.getItem("docs-viewer:theme") || "system";
     const dark = mode === "dark" || (mode === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
+    const storedViewMode = localStorage.getItem("docs-viewer:view") || "auto";
+    const viewMode = ["auto", "mobile", "desktop"].includes(storedViewMode) ? storedViewMode : "auto";
+    const ua = navigator.userAgent || "";
+    const uaMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(ua)
+      || ((navigator.maxTouchPoints || 0) > 1 && /Macintosh/i.test(ua));
+    const mobile = viewMode === "mobile" || (viewMode === "auto" && uaMobile);
     document.documentElement.dataset.theme = dark ? "dark" : "light";
     document.documentElement.dataset.themeMode = mode;
+    document.documentElement.dataset.view = mobile ? "mobile" : "desktop";
+    document.documentElement.dataset.viewMode = viewMode;
   })();
 </script>
 <style>
@@ -369,120 +377,122 @@
     .t-row.active { background: var(--surface-active); }
   }
 
-  @media (max-width: 760px) {
-    .app { position: relative; overflow: hidden; height: 100dvh; }
-    #sidebar {
-      position: fixed;
-      inset: 0 auto 0 0;
-      width: min(86vw, 360px) !important;
-      max-width: none;
-      min-width: 0;
-      height: 100dvh;
-      z-index: 90;
-      transform: translateX(0);
-      transition: transform .18s ease;
-      box-shadow: 8px 0 30px var(--shadow);
-      padding-bottom: max(24px, env(safe-area-inset-bottom));
-    }
-    .app.no-side #sidebar { display: block; transform: translateX(-104%); }
-    #resizer { display: none; }
-    .app:not(.no-side) #side-scrim {
-      display: block;
-      position: fixed;
-      inset: 0;
-      z-index: 85;
-      background: var(--scrim);
-    }
-    #main { width: 100%; flex-basis: 100%; }
-    .topbar {
-      gap: 6px;
-      min-height: 48px;
-      padding: 7px max(8px, env(safe-area-inset-right)) 7px max(8px, env(safe-area-inset-left));
-    }
-    #toggle, .ctl-btn, .zoom-ctl button { min-width: 34px; min-height: 34px; padding: 4px 8px; }
-    .top-actions { margin-left: 0; }
-    .zoom-ctl { margin-left: 0; gap: 1px; }
-    .zoom-ctl #zoom-pct { min-width: 42px; padding-inline: 4px; }
-    #docname { font-size: 13px; }
-    #content { padding: 10px 16px 88px; }
-    .app.no-side.has-outline #content { padding-left: 16px; }
-    .app.no-side.has-outline #outline-peek-trigger { display: none; }
-    #pin-peek, #outline-peek { display: none !important; }
-    .side-head { padding: 10px 14px 12px; font-size: 16px; }
-    .side-head .n { font-size: 13px; }
-    .sec-label { padding: 12px 14px 5px; font-size: 12px; }
-    .side-tabs { padding-inline: 10px; }
-    .stab { min-height: 42px; font-size: 16px; }
-    .t-row { min-height: 42px; font-size: 15px; line-height: 1.45; padding-right: 12px; }
-    #pins .t-row .name { font-size: 14px; }
-    .ol-item { min-height: 40px; padding: 8px 14px; font-size: 15px; line-height: 1.35; }
-    .ol-empty { padding: 12px 14px; font-size: 14px; }
-    .cmt { margin-inline: 10px; padding: 10px; font-size: 13px; }
-    #find-bar {
-      top: 54px;
-      left: 8px;
-      right: 8px;
-      width: auto;
-    }
-    #find-bar input { flex: 1; width: auto; min-width: 0; }
-    #anno-pop,
-    #dia-box-pop {
-      width: min(340px, calc(100vw - 16px));
-      max-width: calc(100vw - 16px);
-    }
-    #sel-tools { position: fixed; }
-    #img-close,
-    #dia-close,
-    #dia-boxbtn,
-    #dia-commentbtn {
-      min-height: 40px;
-      border-radius: 10px;
-      font-size: 16px;
-      line-height: 1.25;
-      padding: 8px 12px;
-    }
-    #img-close, #dia-close { top: max(10px, env(safe-area-inset-top)); right: max(10px, env(safe-area-inset-right)); }
-    #img-hint { display: none; }
-    #img-caption { bottom: max(10px, env(safe-area-inset-bottom)); max-width: calc(100vw - 24px); }
-    #dia-overlay.with-comments #dia-stage {
-      right: 0;
-      bottom: min(42dvh, 340px);
-    }
-    #dia-comments {
-      top: auto;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      width: auto;
-      height: min(42dvh, 340px);
-      border-left: 0;
-      border-top: 1px solid var(--border-soft);
-      padding: 12px max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
-    }
-    #dia-resizer { display: none !important; }
-    #dia-overlay.with-comments #dia-close { right: max(10px, env(safe-area-inset-right)); }
-    #dia-overlay.with-comments #dia-boxbtn { right: calc(max(10px, env(safe-area-inset-right)) + 100px); }
-    #dia-overlay.with-comments #dia-hint { left: 50%; }
-    #dia-boxbtn {
-      top: max(10px, env(safe-area-inset-top));
-      right: calc(max(10px, env(safe-area-inset-right)) + 100px);
-      max-width: min(48vw, 190px);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    #dia-commentbtn {
-      top: max(10px, env(safe-area-inset-top));
-      right: calc(max(10px, env(safe-area-inset-right)) + 246px);
-      min-width: 48px;
-    }
-    #dia-hint {
-      bottom: calc(10px + env(safe-area-inset-bottom));
-      max-width: calc(100vw - 24px);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
+  html[data-view="mobile"] .app { position: relative; overflow: hidden; height: 100dvh; }
+  html[data-view="mobile"] #sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: min(86vw, 360px) !important;
+    max-width: none;
+    min-width: 0;
+    height: 100dvh;
+    z-index: 90;
+    transform: translateX(0);
+    transition: transform .18s ease;
+    box-shadow: 8px 0 30px var(--shadow);
+    padding-bottom: max(24px, env(safe-area-inset-bottom));
+  }
+  html[data-view="mobile"] .app.no-side #sidebar { display: block; transform: translateX(-104%); }
+  html[data-view="mobile"] #resizer { display: none; }
+  html[data-view="mobile"] .app:not(.no-side) #side-scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 85;
+    background: var(--scrim);
+  }
+  html[data-view="mobile"] #main { width: 100%; flex-basis: 100%; }
+  html[data-view="mobile"] .topbar {
+    gap: 6px;
+    min-height: 48px;
+    padding: 7px max(8px, env(safe-area-inset-right)) 7px max(8px, env(safe-area-inset-left));
+  }
+  html[data-view="mobile"] #toggle,
+  html[data-view="mobile"] .ctl-btn,
+  html[data-view="mobile"] .zoom-ctl button { min-width: 34px; min-height: 34px; padding: 4px 8px; }
+  html[data-view="mobile"] .top-actions { margin-left: 0; }
+  html[data-view="mobile"] .zoom-ctl { margin-left: 0; gap: 1px; }
+  html[data-view="mobile"] .zoom-ctl #zoom-pct { min-width: 42px; padding-inline: 4px; }
+  html[data-view="mobile"] #docname { font-size: 13px; }
+  html[data-view="mobile"] #content { padding: 10px 16px 88px; }
+  html[data-view="mobile"] .app.no-side.has-outline #content { padding-left: 16px; }
+  html[data-view="mobile"] .app.no-side.has-outline #outline-peek-trigger { display: none; }
+  html[data-view="mobile"] #pin-peek,
+  html[data-view="mobile"] #outline-peek { display: none !important; }
+  html[data-view="mobile"] .side-head { padding: 10px 14px 12px; font-size: 16px; }
+  html[data-view="mobile"] .side-head .n { font-size: 13px; }
+  html[data-view="mobile"] .sec-label { padding: 12px 14px 5px; font-size: 12px; }
+  html[data-view="mobile"] .side-tabs { padding-inline: 10px; }
+  html[data-view="mobile"] .stab { min-height: 42px; font-size: 16px; }
+  html[data-view="mobile"] .t-row { min-height: 42px; font-size: 15px; line-height: 1.45; padding-right: 12px; }
+  html[data-view="mobile"] #pins .t-row .name { font-size: 14px; }
+  html[data-view="mobile"] .ol-item { min-height: 40px; padding: 8px 14px; font-size: 15px; line-height: 1.35; }
+  html[data-view="mobile"] .ol-empty { padding: 12px 14px; font-size: 14px; }
+  html[data-view="mobile"] .cmt { margin-inline: 10px; padding: 10px; font-size: 13px; }
+  html[data-view="mobile"] #find-bar {
+    top: 54px;
+    left: 8px;
+    right: 8px;
+    width: auto;
+  }
+  html[data-view="mobile"] #find-bar input { flex: 1; width: auto; min-width: 0; }
+  html[data-view="mobile"] #anno-pop,
+  html[data-view="mobile"] #dia-box-pop {
+    width: min(340px, calc(100vw - 16px));
+    max-width: calc(100vw - 16px);
+  }
+  html[data-view="mobile"] #sel-tools { position: fixed; }
+  html[data-view="mobile"] #img-close,
+  html[data-view="mobile"] #dia-close,
+  html[data-view="mobile"] #dia-boxbtn,
+  html[data-view="mobile"] #dia-commentbtn {
+    min-height: 40px;
+    border-radius: 10px;
+    font-size: 16px;
+    line-height: 1.25;
+    padding: 8px 12px;
+  }
+  html[data-view="mobile"] #img-close,
+  html[data-view="mobile"] #dia-close { top: max(10px, env(safe-area-inset-top)); right: max(10px, env(safe-area-inset-right)); }
+  html[data-view="mobile"] #img-hint { display: none; }
+  html[data-view="mobile"] #img-caption { bottom: max(10px, env(safe-area-inset-bottom)); max-width: calc(100vw - 24px); }
+  html[data-view="mobile"] #dia-overlay.with-comments #dia-stage {
+    right: 0;
+    bottom: min(42dvh, 340px);
+  }
+  html[data-view="mobile"] #dia-comments {
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: auto;
+    height: min(42dvh, 340px);
+    border-left: 0;
+    border-top: 1px solid var(--border-soft);
+    padding: 12px max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  }
+  html[data-view="mobile"] #dia-resizer { display: none !important; }
+  html[data-view="mobile"] #dia-overlay.with-comments #dia-close { right: max(10px, env(safe-area-inset-right)); }
+  html[data-view="mobile"] #dia-overlay.with-comments #dia-boxbtn { right: calc(max(10px, env(safe-area-inset-right)) + 100px); }
+  html[data-view="mobile"] #dia-overlay.with-comments #dia-hint { left: 50%; }
+  html[data-view="mobile"] #dia-boxbtn {
+    top: max(10px, env(safe-area-inset-top));
+    right: calc(max(10px, env(safe-area-inset-right)) + 100px);
+    max-width: min(48vw, 190px);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  html[data-view="mobile"] #dia-commentbtn {
+    top: max(10px, env(safe-area-inset-top));
+    right: calc(max(10px, env(safe-area-inset-right)) + 246px);
+    min-width: 48px;
+  }
+  html[data-view="mobile"] #dia-hint {
+    bottom: calc(10px + env(safe-area-inset-bottom));
+    max-width: calc(100vw - 24px);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 </style>
 <body>
@@ -506,7 +516,7 @@
   <div id="resizer" title="拖拽调整宽度 · 双击复位"></div>
   <div id="main">
     <div class="topbar"><button id="toggle" title="收起/展开目录">☰</button><span id="docname">选择左侧文档</span>
-      <div class="top-actions"><button id="lang-toggle" class="ctl-btn" type="button">中</button><button id="theme-toggle" class="ctl-btn" type="button">Auto</button></div>
+      <div class="top-actions"><button id="view-toggle" class="ctl-btn" type="button">Auto</button><button id="lang-toggle" class="ctl-btn" type="button">中</button><button id="theme-toggle" class="ctl-btn" type="button">Auto</button></div>
       <div class="zoom-ctl"><button id="zoom-out" title="缩小字号">A−</button><button id="zoom-pct" title="点击复原 100%">100%</button><button id="zoom-in" title="放大字号">A+</button></div></div>
     <div id="pin-peek" role="navigation" aria-label="置顶"><div class="pin-peek-head">置顶</div><div id="pin-peek-list"></div></div>
     <button id="outline-peek-trigger" type="button" title="大纲" aria-label="大纲"></button>
@@ -530,13 +540,15 @@
   const SCROLL_KEY = "docs-viewer:scroll";
   const LANG_KEY = "docs-viewer:lang";
   const THEME_KEY = "docs-viewer:theme";
-  const MOBILE_QUERY = matchMedia("(max-width: 760px)");
+  const VIEW_KEY = "docs-viewer:view";
+  const VIEW_ORDER = ["auto", "mobile", "desktop"];
   const DARK_QUERY = matchMedia("(prefers-color-scheme: dark)");
   const mainEl = document.getElementById("main");
   const toggleBtn = document.getElementById("toggle");
   const pinPeek = document.getElementById("pin-peek");
   const outlinePeek = document.getElementById("outline-peek");
   const outlinePeekTrigger = document.getElementById("outline-peek-trigger");
+  const viewToggle = document.getElementById("view-toggle");
   const langToggle = document.getElementById("lang-toggle");
   const themeToggle = document.getElementById("theme-toggle");
   const sideScrim = document.getElementById("side-scrim");
@@ -549,6 +561,10 @@
       themeLight: "亮",
       themeDark: "暗",
       toggleTheme: "切换明暗模式",
+      viewAuto: "自动",
+      viewMobile: "移动",
+      viewDesktop: "桌面",
+      toggleView: "切换视图模式",
       toggleSide: "收起/展开目录",
       chooseDoc: "选择左侧文档",
       files: "文件",
@@ -603,6 +619,10 @@
       themeLight: "Light",
       themeDark: "Dark",
       toggleTheme: "Toggle color mode",
+      viewAuto: "Auto",
+      viewMobile: "Mobile",
+      viewDesktop: "Desktop",
+      toggleView: "Toggle view mode",
       toggleSide: "Toggle sidebar",
       chooseDoc: "Choose a document",
       files: "Files",
@@ -652,9 +672,30 @@
   };
   let lang = localStorage.getItem(LANG_KEY) || (navigator.language?.toLowerCase().startsWith("zh") ? "zh" : "en");
   let themeMode = localStorage.getItem(THEME_KEY) || "system";
+  let viewMode = localStorage.getItem(VIEW_KEY) || "auto";
+  if (!VIEW_ORDER.includes(viewMode)) viewMode = "auto";
   function t(key, vars = {}) {
     const raw = I18N[lang]?.[key] ?? I18N.en[key] ?? key;
     return raw.replace(/\{(\w+)\}/g, (_, name) => vars[name] ?? "");
+  }
+  function uaPrefersMobile() {
+    const ua = navigator.userAgent || "";
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(ua)
+      || ((navigator.maxTouchPoints || 0) > 1 && /Macintosh/i.test(ua));
+  }
+  function resolvedView(mode = viewMode) {
+    return mode === "mobile" || (mode === "auto" && uaPrefersMobile()) ? "mobile" : "desktop";
+  }
+  function applyViewMode(mode = viewMode, { resetSide = false } = {}) {
+    viewMode = VIEW_ORDER.includes(mode) ? mode : "auto";
+    const view = resolvedView(viewMode);
+    localStorage.setItem(VIEW_KEY, viewMode);
+    document.documentElement.dataset.viewMode = viewMode;
+    document.documentElement.dataset.view = view;
+    viewToggle.textContent = t(viewMode === "mobile" ? "viewMobile" : viewMode === "desktop" ? "viewDesktop" : "viewAuto");
+    viewToggle.title = t("toggleView");
+    viewToggle.setAttribute("aria-label", t("toggleView"));
+    if (resetSide || localStorage.getItem(SIDE_KEY) === null) app.classList.toggle("no-side", view === "mobile");
   }
   function resolvedTheme(mode = themeMode) {
     return mode === "dark" || (mode === "system" && DARK_QUERY.matches) ? "dark" : "light";
@@ -673,6 +714,7 @@
   }
   function applyChromeText() {
     document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
+    applyViewMode(viewMode);
     langToggle.textContent = t("langSwitch");
     langToggle.title = t("switchLanguage");
     toggleBtn.title = t("toggleSide");
@@ -723,6 +765,13 @@
     const order = ["system", "light", "dark"];
     applyTheme(order[(order.indexOf(themeMode) + 1) % order.length], { reload: true });
   });
+  viewToggle.addEventListener("click", () => {
+    const next = VIEW_ORDER[(VIEW_ORDER.indexOf(viewMode) + 1) % VIEW_ORDER.length];
+    localStorage.removeItem(SIDE_KEY);
+    applyViewMode(next, { resetSide: true });
+    pinPeek.classList.remove("show");
+    hideOutlinePeek();
+  });
   DARK_QUERY.addEventListener?.("change", () => {
     if (themeMode === "system") applyTheme("system", { reload: true });
   });
@@ -731,8 +780,11 @@
   let outlinePeekPinned = false;
   let syncOutlineActiveNow = () => {};
   let syncOutlinePeekPosition = () => {};
+  applyViewMode(viewMode);
   const storedSide = localStorage.getItem(SIDE_KEY);
-  if (storedSide === "0" || (storedSide === null && MOBILE_QUERY.matches)) app.classList.add("no-side");
+  if (storedSide === "0") app.classList.add("no-side");
+  else if (storedSide === "1") app.classList.remove("no-side");
+  else app.classList.toggle("no-side", resolvedView() === "mobile");
   toggleBtn.addEventListener("click", () => {
     app.classList.toggle("no-side");
     localStorage.setItem(SIDE_KEY, app.classList.contains("no-side") ? "0" : "1");
@@ -742,9 +794,6 @@
   sideScrim.addEventListener("click", () => {
     app.classList.add("no-side");
     localStorage.setItem(SIDE_KEY, "0");
-  });
-  MOBILE_QUERY.addEventListener?.("change", (e) => {
-    if (localStorage.getItem(SIDE_KEY) === null) app.classList.toggle("no-side", e.matches);
   });
 
   function showPinPeek() {
