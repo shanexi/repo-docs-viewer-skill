@@ -1602,9 +1602,9 @@
       if (!it) return;
       if (it.box) {
         const di = boxSelOf(it.a).diagramIndex ?? 0;
-        document.querySelector(`.mermaid[data-diagram-index="${di}"]`)?.scrollIntoView({ block: "center", behavior: "smooth" });
+        scrollMainToElement(document.querySelector(`.mermaid[data-diagram-index="${di}"]`), { block: "center" });
       } else {
-        document.querySelector(`.r6o-annotation[data-id="${CSS.escape(it.a.id)}"]`)?.scrollIntoView({ block: "center", behavior: "smooth" });
+        scrollMainToElement(document.querySelector(`.r6o-annotation[data-id="${CSS.escape(it.a.id)}"]`), { block: "center" });
       }
     };
   }
@@ -1707,14 +1707,26 @@
   }
 
   const LONG_SCROLL_THRESHOLD_SCREENS = 1.4;
-  const LONG_SCROLL_TAIL_PX = 320;
-  function scrollMainToElement(el, { behavior = "smooth" } = {}) {
+  const LONG_SCROLL_TAIL_MIN_PX = 420;
+  const LONG_SCROLL_TAIL_MAX_PX = 760;
+  const LONG_SCROLL_TAIL_SCREEN_RATIO = 0.6;
+  function longScrollTailPx() {
+    return Math.round(Math.min(
+      LONG_SCROLL_TAIL_MAX_PX,
+      Math.max(LONG_SCROLL_TAIL_MIN_PX, mainEl.clientHeight * LONG_SCROLL_TAIL_SCREEN_RATIO),
+    ));
+  }
+  function scrollMainToElement(el, { behavior = "smooth", block = "start" } = {}) {
     if (!el) return;
     const mainRect = mainEl.getBoundingClientRect();
     const rect = el.getBoundingClientRect();
-    const top = rect.top - mainRect.top - topbarOffset();
+    const topOffset = topbarOffset();
+    const visibleHeight = Math.max(1, mainEl.clientHeight - topOffset);
+    const top = block === "center"
+      ? rect.top - mainRect.top - topOffset + (rect.height / 2) - (visibleHeight / 2)
+      : rect.top - mainRect.top - topOffset;
     if (behavior === "smooth" && Math.abs(top) > mainEl.clientHeight * LONG_SCROLL_THRESHOLD_SCREENS) {
-      const tail = Math.sign(top) * Math.min(Math.abs(top), LONG_SCROLL_TAIL_PX);
+      const tail = Math.sign(top) * Math.min(Math.abs(top), longScrollTailPx());
       mainEl.scrollBy({ top: top - tail, behavior: "auto" });
       requestAnimationFrame(() => mainEl.scrollBy({ top: tail, behavior: "smooth" }));
       return;
