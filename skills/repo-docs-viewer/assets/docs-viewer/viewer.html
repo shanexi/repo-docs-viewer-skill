@@ -182,6 +182,8 @@
   const SIDE_W_KEY = "docs-viewer:side-w";
   const PIN_KEY = "docs-viewer:pins";
   const OPEN_KEY = "docs-viewer:open";
+  const SCROLL_KEY = "docs-viewer:scroll";
+  const mainEl = document.getElementById("main");
   const toggleBtn = document.getElementById("toggle");
   const pinPeek = document.getElementById("pin-peek");
   let pinPeekTimer = null;
@@ -247,6 +249,54 @@
     ? decodeURIComponent(location.pathname.slice(3))
     : null;
   const IMAGE_EXT_RE = /\.(avif|gif|jpe?g|png|svg|webp)$/i;
+
+  function scrollState() {
+    try {
+      return JSON.parse(localStorage.getItem(SCROLL_KEY) ?? "{}") ?? {};
+    } catch {
+      return {};
+    }
+  }
+
+  let restoringScroll = false;
+  let scrollSaveScheduled = false;
+  function saveDocScroll() {
+    if (!docName) return;
+    const state = scrollState();
+    state[docName] = Math.max(0, Math.round(mainEl.scrollTop));
+    localStorage.setItem(SCROLL_KEY, JSON.stringify(state));
+  }
+
+  function scheduleSaveDocScroll() {
+    if (!docName || restoringScroll || scrollSaveScheduled) return;
+    scrollSaveScheduled = true;
+    requestAnimationFrame(() => {
+      scrollSaveScheduled = false;
+      saveDocScroll();
+    });
+  }
+
+  function restoreDocScrollSoon() {
+    if (!docName) return;
+    const y = Number(scrollState()[docName]);
+    if (!Number.isFinite(y) || y <= 0) return;
+    restoringScroll = true;
+    const apply = () => {
+      const maxY = Math.max(0, mainEl.scrollHeight - mainEl.clientHeight);
+      mainEl.scrollTop = Math.min(y, maxY);
+    };
+    apply();
+    requestAnimationFrame(apply);
+    setTimeout(apply, 120);
+    setTimeout(() => {
+      apply();
+      restoringScroll = false;
+    }, 420);
+  }
+
+  mainEl.addEventListener("scroll", scheduleSaveDocScroll);
+  window.addEventListener("pagehide", saveDocScroll);
+  window.addEventListener("beforeunload", saveDocScroll);
 
   function encodePath(path) {
     return path.split("/").map(encodeURIComponent).join("/");
@@ -601,6 +651,7 @@
     }
     const fileRow = e.target.closest(".t-file");
     if (fileRow) {
+      saveDocScroll();
       location.href = `/d/${encodeURI(fileRow.dataset.path)}`;
       return;
     }
@@ -618,6 +669,7 @@
   pinPeek.addEventListener("click", (e) => {
     const fileRow = e.target.closest(".t-file");
     if (fileRow) {
+      saveDocScroll();
       location.href = `/d/${encodeURI(fileRow.dataset.path)}`;
       return;
     }
@@ -1046,6 +1098,7 @@
     }
     mermaid.initialize({ startOnLoad: false, theme: "default", securityLevel: "loose" });
     await mermaid.run({ querySelector: ".mermaid" });
+    restoreDocScrollSoon();
 
     const diaOverlay = document.getElementById("dia-overlay");
     const diaStage = document.getElementById("dia-stage");
