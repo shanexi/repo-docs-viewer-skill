@@ -431,6 +431,16 @@
       max-width: calc(100vw - 16px);
     }
     #sel-tools { position: fixed; }
+    #img-close,
+    #dia-close,
+    #dia-boxbtn,
+    #dia-commentbtn {
+      min-height: 40px;
+      border-radius: 10px;
+      font-size: 16px;
+      line-height: 1.25;
+      padding: 8px 12px;
+    }
     #img-close, #dia-close { top: max(10px, env(safe-area-inset-top)); right: max(10px, env(safe-area-inset-right)); }
     #img-hint { display: none; }
     #img-caption { bottom: max(10px, env(safe-area-inset-bottom)); max-width: calc(100vw - 24px); }
@@ -451,19 +461,20 @@
     }
     #dia-resizer { display: none !important; }
     #dia-overlay.with-comments #dia-close { right: max(10px, env(safe-area-inset-right)); }
-    #dia-overlay.with-comments #dia-boxbtn { right: calc(max(10px, env(safe-area-inset-right)) + 82px); }
+    #dia-overlay.with-comments #dia-boxbtn { right: calc(max(10px, env(safe-area-inset-right)) + 100px); }
     #dia-overlay.with-comments #dia-hint { left: 50%; }
     #dia-boxbtn {
       top: max(10px, env(safe-area-inset-top));
-      right: calc(max(10px, env(safe-area-inset-right)) + 82px);
-      max-width: 42vw;
+      right: calc(max(10px, env(safe-area-inset-right)) + 100px);
+      max-width: min(48vw, 190px);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
     #dia-commentbtn {
       top: max(10px, env(safe-area-inset-top));
-      right: calc(max(10px, env(safe-area-inset-right)) + 198px);
+      right: calc(max(10px, env(safe-area-inset-right)) + 246px);
+      min-width: 48px;
     }
     #dia-hint {
       bottom: calc(10px + env(safe-area-inset-bottom));
