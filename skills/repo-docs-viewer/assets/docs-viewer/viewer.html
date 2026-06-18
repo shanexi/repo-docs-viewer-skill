@@ -2207,6 +2207,7 @@
     let pendingSelection = null;
     let nativeSelectionTimer = null;
     let suppressSelectionToolsUntil = 0;
+    let selectionToolsShownAt = 0;
 
     function openPop(anchorRect, value) {
       const mainEl = document.getElementById("main");
@@ -2302,6 +2303,7 @@
       selTools.classList.remove("copied");
       selCopyBtn.title = t("copySelection");
       selTools.style.display = "flex";
+      selectionToolsShownAt = performance.now();
       selTools.style.visibility = "hidden";
       const toolW = selTools.offsetWidth || 64;
       const toolH = selTools.offsetHeight || 34;
@@ -2338,7 +2340,11 @@
       clearSelectionSpans();
     }
     function dismissSelectionTools({ suppress = true } = {}) {
-      if (suppress) suppressSelectionToolsUntil = performance.now() + 220;
+      const hadTransientSelection = selTools.style.display === "flex"
+        || !!pendingSelection
+        || !!selectedText()
+        || !!contentEl.querySelector(".r6o-selection");
+      if (suppress && hadTransientSelection) suppressSelectionToolsUntil = performance.now() + 350;
       hideSelectionTools();
       clearSelectionState();
     }
@@ -2465,13 +2471,15 @@
     }
     const dismissSelectionOnOutsidePress = (e) => {
       if (isSelectionControlTarget(e.target)) return;
+      if (e.type === "click" && e.target.closest?.(".r6o-annotation")) return;
+      if (e.type === "click" && performance.now() - selectionToolsShownAt < 120) return;
       if (pop.style.display === "block") {
         closePop();
         return;
       }
-      if (hasTransientSelection()) dismissSelectionTools();
+      dismissSelectionTools();
     };
-    for (const type of ["pointerdown", "mousedown", "touchstart"]) {
+    for (const type of ["pointerdown", "mousedown", "touchstart", "click"]) {
       document.addEventListener(type, dismissSelectionOnOutsidePress, { capture: true });
     }
     document.getElementById("main").addEventListener("mousedown", (e) => {
