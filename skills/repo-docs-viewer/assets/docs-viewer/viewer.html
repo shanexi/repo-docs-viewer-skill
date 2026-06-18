@@ -163,12 +163,12 @@
   .cmt-tools button:disabled { cursor: default; color: #b6b4ab; background: transparent; border-color: transparent; opacity: .45; }
   .cmt-copy-status { flex: 1; min-width: 0; color: #9b9a92; font: 12px system-ui; overflow: hidden; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
   .cmt-empty { padding: 10px 14px; color: #9b9a92; font: 12px system-ui; }
-  .ol-item { padding: 3px 12px; cursor: pointer; font: 12px/1.5 system-ui; color: #57564f; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-left: 2px solid transparent; }
+  .ol-item { padding: 3px 12px; cursor: pointer; font: 12px/1.5 system-ui; font-size: clamp(10px, calc(12px * var(--zoom, 1)), 18px); color: #57564f; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-left: 2px solid transparent; }
   .ol-item:hover { background: #f0eee5; }
   .ol-item.active { border-left-color: #d97757; color: #1a1915; background: #faf6f0; }
   .ol-h1 { font-weight: 600; color: #3b3a35; }
   .ol-h2 { font-weight: 500; color: #3b3a35; }
-  .ol-empty { padding: 10px 14px; color: #9b9a92; font: 12px system-ui; }
+  .ol-empty { padding: 10px 14px; color: #9b9a92; font: 12px system-ui; font-size: clamp(10px, calc(12px * var(--zoom, 1)), 18px); }
   .mm-box-badge { position: absolute; top: 6px; right: 6px; z-index: 5; border: 1px solid #e3a886; background: rgba(255,246,240,.95); border-radius: 6px; font: 11px system-ui; color: #b08968; padding: 2px 8px; cursor: pointer; }
   .mm-box-badge:hover { background: #f7ece3; }
   #dia-boxbtn { position: absolute; top: 14px; right: 96px; z-index: 101; border: 1px solid #d9d8d3; background: #fff; color: #56554e; border-radius: 8px; font: 14px system-ui; padding: 4px 12px; cursor: pointer; }
@@ -433,8 +433,8 @@
   html[data-view="mobile"] .stab { min-height: 42px; font-size: 16px; }
   html[data-view="mobile"] .t-row { min-height: 42px; font-size: 15px; line-height: 1.45; padding-right: 12px; }
   html[data-view="mobile"] #pins .t-row .name { font-size: 14px; }
-  html[data-view="mobile"] .ol-item { min-height: 40px; padding: 8px 14px; font-size: 15px; line-height: 1.35; }
-  html[data-view="mobile"] .ol-empty { padding: 12px 14px; font-size: 14px; }
+  html[data-view="mobile"] .ol-item { min-height: 40px; padding: 8px 14px; font-size: clamp(13px, calc(15px * var(--zoom, 1)), 22px); line-height: 1.35; }
+  html[data-view="mobile"] .ol-empty { padding: 12px 14px; font-size: clamp(12px, calc(14px * var(--zoom, 1)), 20px); }
   html[data-view="mobile"] .cmt { margin-inline: 10px; padding: 10px; font-size: 13px; }
   html[data-view="mobile"] #find-bar {
     top: 54px;
@@ -1630,8 +1630,9 @@
   function applyZoom(next) {
     zoom = Math.round(Math.min(2, Math.max(0.6, next)) * 10) / 10;
     contentEl.style.fontSize = zoom === 1 ? "" : `${16 * zoom}px`;
-    // 评论弹窗 textarea 等随动（CSS 内 calc(14px * var(--zoom))）
-    document.getElementById("main").style.setProperty("--zoom", String(zoom));
+    // Outline, peek controls, and annotation popovers share the same zoom variable.
+    document.documentElement.style.setProperty("--zoom", String(zoom));
+    app.style.setProperty("--zoom", String(zoom));
     document.getElementById("zoom-pct").textContent = `${Math.round(zoom * 100)}%`;
     if (zoom === 1) localStorage.removeItem(ZOOM_KEY); else localStorage.setItem(ZOOM_KEY, String(zoom));
   }
