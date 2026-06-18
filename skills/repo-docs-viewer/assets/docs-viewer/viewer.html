@@ -2206,6 +2206,7 @@
     let popTarget = null;
     let pendingSelection = null;
     let nativeSelectionTimer = null;
+    let suppressSelectionToolsUntil = 0;
 
     function openPop(anchorRect, value) {
       const mainEl = document.getElementById("main");
@@ -2336,7 +2337,8 @@
       r.selectAnnotation();
       clearSelectionSpans();
     }
-    function dismissSelectionTools() {
+    function dismissSelectionTools({ suppress = true } = {}) {
+      if (suppress) suppressSelectionToolsUntil = performance.now() + 220;
       hideSelectionTools();
       clearSelectionState();
     }
@@ -2348,6 +2350,7 @@
     }
 
     function showNativeSelectionTools() {
+      if (performance.now() < suppressSelectionToolsUntil) return;
       if (pop.style.display === "block") return;
       const payload = nativeSelectionPayload();
       if (!payload) return;
@@ -2358,10 +2361,12 @@
     }
 
     r.on("createSelection", (selection) => {
+      if (performance.now() < suppressSelectionToolsUntil) return;
       const an = window.getSelection()?.anchorNode;
       const inMermaid = an && ((an.nodeType === 1 ? an : an.parentElement)?.closest?.(".mermaid"));
       if (inMermaid) { window.getSelection()?.removeAllRanges(); clearSelectionSpans(); return; }  // 图不支持划线，用放大态框选
       requestAnimationFrame(() => {
+        if (performance.now() < suppressSelectionToolsUntil) return;
         const text = selectedText() || selectionTextFromPayload(selection);
         if (!text) return dismissSelectionTools();
         const rect = selectionRect();
@@ -2458,14 +2463,17 @@
     function isSelectionControlTarget(target) {
       return !!target?.closest?.("#sel-tools, #anno-pop");
     }
-    document.addEventListener("pointerdown", (e) => {
+    const dismissSelectionOnOutsidePress = (e) => {
       if (isSelectionControlTarget(e.target)) return;
       if (pop.style.display === "block") {
         closePop();
         return;
       }
       if (hasTransientSelection()) dismissSelectionTools();
-    }, { capture: true });
+    };
+    for (const type of ["pointerdown", "mousedown", "touchstart"]) {
+      document.addEventListener(type, dismissSelectionOnOutsidePress, { capture: true });
+    }
     document.getElementById("main").addEventListener("mousedown", (e) => {
       if (pop.style.display === "block" && !pop.contains(e.target)) closePop();
       if (selTools.style.display === "flex" && !selTools.contains(e.target)) dismissSelectionTools();
