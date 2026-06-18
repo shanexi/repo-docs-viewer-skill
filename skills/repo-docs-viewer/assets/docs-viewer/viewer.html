@@ -1299,6 +1299,7 @@
       dia.diagramIndex = Number(svg.closest(".mermaid")?.dataset.diagramIndex ?? -1);
       diaReset();
       diaOverlay.classList.add("show");
+      syncDiaCommentsVisibility();
     }
     function closeDiagram() {
       diaOverlay.classList.remove("show");
@@ -1324,6 +1325,16 @@
         });
       }
       diaOverlay.classList.add("with-comments");
+    }
+    function syncDiaCommentsVisibility() {
+      if (dia.diagramIndex < 0) return;
+      const hasComments = boxAnnotations.some((a) => (boxSelOf(a).diagramIndex ?? -1) === dia.diagramIndex);
+      if (hasComments) {
+        showDiaComments(dia.diagramIndex);
+      } else {
+        diaOverlay.classList.remove("with-comments");
+        document.getElementById("dia-comments").innerHTML = "";
+      }
     }
     window.__openDiagram = openDiagram;
     window.__showDiaComments = showDiaComments;
@@ -1757,9 +1768,7 @@
     function refreshDiagramCommentViews() {
       renderBoxMarkers();
       renderComments();
-      if (diaOverlay.classList.contains("with-comments") && dia.diagramIndex >= 0) {
-        showDiaComments(dia.diagramIndex);
-      }
+      if (diaOverlay.classList.contains("show")) syncDiaCommentsVisibility();
     }
     function openDiaBoxEditor(target, value, anchorRect) {
       const sel = target.annotation ? boxSelOf(target.annotation) : target;
