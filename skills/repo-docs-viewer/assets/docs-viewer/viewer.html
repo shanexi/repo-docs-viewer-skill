@@ -182,6 +182,7 @@
   const SIDE_W_KEY = "docs-viewer:side-w";
   const PIN_KEY = "docs-viewer:pins";
   const OPEN_KEY = "docs-viewer:open";
+  const TAB_KEY = "docs-viewer:tab";
   const SCROLL_KEY = "docs-viewer:scroll";
   const mainEl = document.getElementById("main");
   const toggleBtn = document.getElementById("toggle");
@@ -688,20 +689,25 @@
     ?.scrollIntoView({ block: "center" });
 
   const PANELS = { files: "panel-files", outline: "panel-outline", comments: "panel-comments" };
+  function setSideTab(name, { persist = true, render = true } = {}) {
+    const next = PANELS[name] ? name : "files";
+    for (const tab of document.querySelectorAll(".stab")) tab.classList.toggle("on", tab.dataset.tab === next);
+    for (const [panelName, id] of Object.entries(PANELS)) {
+      document.getElementById(id).style.display = panelName === next ? "" : "none";
+    }
+    if (persist) localStorage.setItem(TAB_KEY, next);
+    if (render && next === "comments") renderComments();
+  }
+
   for (const tab of document.querySelectorAll(".stab")) {
-    tab.addEventListener("click", () => {
-      for (const other of document.querySelectorAll(".stab")) other.classList.toggle("on", other === tab);
-      for (const [name, id] of Object.entries(PANELS)) {
-        document.getElementById(id).style.display = tab.dataset.tab === name ? "" : "none";
-      }
-      if (tab.dataset.tab === "comments") renderComments();
-    });
+    tab.addEventListener("click", () => setSideTab(tab.dataset.tab));
   }
 
   let recogito = null;
   let persistFn = null;
   let annotationCache = [];
   let boxAnnotations = [];  // mermaid 框选评论（独立于 Recogito 文本批注，合并持久化）
+  setSideTab(localStorage.getItem(TAB_KEY) ?? "files", { persist: false, render: false });
   const isBoxAnno = (a) => ((a?.target?.selector) ?? []).some((s) => s?.type === "MermaidBoxSelector");
   const boxSelOf = (a) => ((a?.target?.selector) ?? []).find((s) => s?.type === "MermaidBoxSelector") ?? {};
   function renderBoxMarkers() {
