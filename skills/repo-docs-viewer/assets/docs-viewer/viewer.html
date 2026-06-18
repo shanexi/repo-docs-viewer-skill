@@ -28,7 +28,7 @@
   #resizer { flex: none; width: 6px; margin: 0 -3px; cursor: col-resize; background: transparent; z-index: 30; position: relative; }
   #resizer:hover, #resizer.dragging { background: #d9cdb4; }
   #main { flex: 1; overflow-y: auto; position: relative; --collapsed-outline-gutter: clamp(34px, calc(40px * var(--zoom, 1)), 50px); }
-  .topbar { position: sticky; top: 0; z-index: 20; background: rgba(255,255,255,.97); border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 10px; padding: 7px 14px; font: 13px/1.4 system-ui; color: #57606a; }
+  .topbar { position: sticky; top: 0; z-index: 20; background: rgba(255,255,255,.97); border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 8px; padding: 7px 12px; font: 13px/1.4 system-ui; color: #57606a; }
   ::highlight(find-all) { background: #ffe066; color: #1a1915; }
   ::highlight(find-current) { background: #ff9632; color: #1a1915; }
   #find-bar { position: fixed; top: 50px; right: 22px; z-index: 60; align-items: center; gap: 6px; background: #fff; border: 1px solid #d9d8d3; border-radius: 10px; box-shadow: 0 4px 16px rgba(0,0,0,.12); padding: 5px 8px; }
@@ -37,10 +37,11 @@
   #find-count.none { color: #a32d2d; }
   #find-bar button { border: none; background: none; cursor: pointer; color: #56554e; font-size: 12px; padding: 2px 4px; border-radius: 5px; }
   #find-bar button:hover { background: #f0eee5; }
-  .zoom-ctl { margin-left: auto; display: flex; align-items: center; gap: 2px; }
-  .zoom-ctl button { border: 1px solid #d9d8d3; background: #fff; border-radius: 6px; cursor: pointer; color: #56554e; font-size: 12px; padding: 2px 8px; line-height: 1.4; }
+  .zoom-ctl { flex: none; margin-left: 6px; display: inline-flex; align-items: center; gap: 0; overflow: hidden; border: 1px solid #d9d8d3; border-radius: 6px; background: #fff; }
+  .zoom-ctl button { border: 0; border-right: 1px solid #d9d8d3; background: transparent; border-radius: 0; cursor: pointer; color: #56554e; font-size: 12px; min-width: 30px; padding: 2px 7px; line-height: 1.4; }
+  .zoom-ctl button:last-child { border-right: 0; }
   .zoom-ctl button:hover { background: #f0eee5; }
-  .zoom-ctl #zoom-pct { border: none; background: none; min-width: 46px; text-align: center; }
+  .zoom-ctl #zoom-pct { min-width: 40px; text-align: center; }
   #toggle { border: 1px solid #d9d8d3; background: #fff; border-radius: 6px; cursor: pointer; padding: 2px 8px; color: #56554e; font-size: 13px; }
   #toggle:hover { background: #f0eee5; }
   #pin-peek { position: fixed; top: 38px; left: 14px; z-index: 65; width: min(300px, calc(100vw - 28px)); max-height: min(360px, calc(100vh - 58px)); overflow-y: auto; display: none; background: rgba(255,255,255,.98); border: 1px solid rgba(0,0,0,.1); border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,.16); padding: 8px 0; }
@@ -265,7 +266,7 @@
   .topbar { background: color-mix(in srgb, var(--surface) 94%, transparent); border-bottom-color: var(--border); color: var(--text-soft); }
   #docname { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   #side-scrim { display: none; }
-  .top-actions { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+  .top-actions { display: flex; align-items: center; gap: 6px; margin-left: auto; }
   .ctl-btn,
   #toggle,
   .zoom-ctl button,
@@ -279,6 +280,8 @@
     color: var(--text-soft);
   }
   .ctl-btn { border: 1px solid var(--border-strong); border-radius: 6px; cursor: pointer; font: 12px/1.4 system-ui; padding: 2px 8px; min-width: 36px; }
+  .zoom-ctl { border-color: var(--border-strong); background: var(--surface); }
+  .zoom-ctl button { background: transparent; border-right-color: var(--border-soft); }
   .ctl-btn:hover,
   #toggle:hover,
   .zoom-ctl button:hover,
@@ -410,8 +413,8 @@
   html[data-view="mobile"] .ctl-btn,
   html[data-view="mobile"] .zoom-ctl button { min-width: 34px; min-height: 34px; padding: 4px 8px; }
   html[data-view="mobile"] .top-actions { margin-left: 0; }
-  html[data-view="mobile"] .zoom-ctl { margin-left: 0; gap: 1px; }
-  html[data-view="mobile"] .zoom-ctl #zoom-pct { min-width: 42px; padding-inline: 4px; }
+  html[data-view="mobile"] .zoom-ctl { margin-left: 2px; gap: 0; }
+  html[data-view="mobile"] .zoom-ctl #zoom-pct { min-width: 38px; padding-inline: 4px; }
   html[data-view="mobile"] #docname { font-size: 13px; }
   html[data-view="mobile"] #content { padding: 10px 16px 88px; }
   html[data-view="mobile"] .app.no-side.has-outline #content { padding-left: 16px; }
