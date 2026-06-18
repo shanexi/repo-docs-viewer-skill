@@ -2205,6 +2205,7 @@
     const selCommentBtn = document.getElementById("sel-comment");
     let popTarget = null;
     let pendingSelection = null;
+    let nativeSelectionTimer = null;
 
     function openPop(anchorRect, value) {
       const mainEl = document.getElementById("main");
@@ -2315,6 +2316,7 @@
     }
 
     function hideSelectionTools() {
+      clearTimeout(nativeSelectionTimer);
       selTools.style.display = "none";
       selTools.style.visibility = "";
       selTools.classList.remove("copied");
@@ -2368,7 +2370,6 @@
       });
     });
 
-    let nativeSelectionTimer = null;
     function scheduleNativeSelectionTools() {
       clearTimeout(nativeSelectionTimer);
       nativeSelectionTimer = setTimeout(showNativeSelectionTools, 40);
@@ -2448,6 +2449,23 @@
       renderComments();
     });
     // 点 pop 外（仍在选中态、未写评论）→ 关闭并清掉划线高亮
+    function hasTransientSelection() {
+      return selTools.style.display === "flex"
+        || !!pendingSelection
+        || !!selectedText()
+        || !!contentEl.querySelector(".r6o-selection");
+    }
+    function isSelectionControlTarget(target) {
+      return !!target?.closest?.("#sel-tools, #anno-pop");
+    }
+    document.addEventListener("pointerdown", (e) => {
+      if (isSelectionControlTarget(e.target)) return;
+      if (pop.style.display === "block") {
+        closePop();
+        return;
+      }
+      if (hasTransientSelection()) dismissSelectionTools();
+    }, { capture: true });
     document.getElementById("main").addEventListener("mousedown", (e) => {
       if (pop.style.display === "block" && !pop.contains(e.target)) closePop();
       if (selTools.style.display === "flex" && !selTools.contains(e.target)) dismissSelectionTools();
@@ -2455,8 +2473,8 @@
     document.addEventListener("keydown", (e) => {
       if (e.key !== "Escape") return;
       if (document.getElementById("dia-overlay").classList.contains("show")) { window.__closeDiagram?.(); return; }
-      if (pop.style.display === "block") closePop();
-      if (selTools.style.display === "flex") dismissSelectionTools();
+      if (pop.style.display === "block") { e.preventDefault(); closePop(); return; }
+      if (hasTransientSelection()) { e.preventDefault(); dismissSelectionTools(); }
     });
 
     const annoUrl = `/api/annotations/${encodeURI(docName)}`;
