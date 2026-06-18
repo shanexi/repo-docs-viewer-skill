@@ -34,12 +34,13 @@
   #pin-peek .t-row { padding: 4px 10px; font-size: 13px; line-height: 1.6; }
   #pin-peek .chev, #pin-peek .star { display: none; }
   #pin-peek .badge { margin-left: 8px; }
-  #outline-peek-trigger { position: fixed; top: calc(45px + 10px * var(--zoom, 1)); left: 18px; z-index: 64; width: clamp(30px, calc(34px * var(--zoom, 1)), 42px); height: clamp(30px, calc(34px * var(--zoom, 1)), 42px); display: none; flex-direction: column; justify-content: center; align-items: flex-start; gap: clamp(7px, calc(8px * var(--zoom, 1)), 10px); border: none; border-radius: 8px; background: transparent; cursor: pointer; padding: 0 clamp(4px, calc(5px * var(--zoom, 1)), 6px); }
+  #outline-peek-trigger { position: fixed; top: calc(45px + 10px * var(--zoom, 1)); left: 18px; z-index: 64; width: clamp(30px, calc(34px * var(--zoom, 1)), 42px); height: clamp(30px, calc(34px * var(--zoom, 1)), 42px); display: none; flex-direction: column; justify-content: center; align-items: flex-start; gap: clamp(4px, calc(5px * var(--zoom, 1)), 7px); border: none; border-radius: 8px; background: transparent; cursor: pointer; padding: 0 clamp(4px, calc(5px * var(--zoom, 1)), 6px); }
   .app.no-side.has-outline #outline-peek-trigger { display: flex; }
   #outline-peek-trigger:hover, #outline-peek-trigger:focus-visible { background: rgba(240,238,229,.75); outline: none; }
   #outline-peek-trigger span { display: block; height: clamp(2px, calc(3px * var(--zoom, 1)), 4px); border-radius: 999px; background: #c8c7c2; }
   #outline-peek-trigger span:first-child { width: clamp(14px, calc(17px * var(--zoom, 1)), 22px); }
-  #outline-peek-trigger span:last-child { width: clamp(22px, calc(26px * var(--zoom, 1)), 32px); background: #2f2e2a; }
+  #outline-peek-trigger span:nth-child(2) { width: clamp(22px, calc(26px * var(--zoom, 1)), 32px); background: #2f2e2a; }
+  #outline-peek-trigger span:last-child { width: clamp(18px, calc(21px * var(--zoom, 1)), 27px); background: #73726c; }
   #outline-peek { position: fixed; top: calc(45px + 8px * var(--zoom, 1)); left: 14px; z-index: 66; width: min(clamp(280px, calc(340px * var(--zoom, 1)), 430px), calc(100vw - 28px)); max-height: min(clamp(240px, calc(320px * var(--zoom, 1)), 420px), calc(100vh - 64px)); overflow-y: auto; display: none; background: rgba(255,255,255,.98); border: 1px solid rgba(0,0,0,.1); border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,.16); padding: clamp(5px, calc(6px * var(--zoom, 1)), 8px); }
   .app.no-side #outline-peek.show,
   .app.no-side.has-outline #main:has(#outline-peek-trigger:hover) #outline-peek,
@@ -184,7 +185,7 @@
     <div class="topbar"><button id="toggle" title="收起/展开目录">☰</button><span id="docname">选择左侧文档</span>
       <div class="zoom-ctl"><button id="zoom-out" title="缩小字号">A−</button><button id="zoom-pct" title="点击复原 100%">100%</button><button id="zoom-in" title="放大字号">A+</button></div></div>
     <div id="pin-peek" role="navigation" aria-label="置顶"><div class="pin-peek-head">置顶</div><div id="pin-peek-list"></div></div>
-    <button id="outline-peek-trigger" type="button" title="大纲" aria-label="大纲"><span></span><span></span></button>
+    <button id="outline-peek-trigger" type="button" title="大纲" aria-label="大纲"><span></span><span></span><span></span></button>
     <div id="outline-peek" role="navigation" aria-label="大纲"><div id="outline-peek-list"></div></div>
     <article id="content" class="markdown-body"></article>
     <div id="anno-pop"><div id="box-extract"></div><textarea placeholder="写下评论…"></textarea><div class="foot"><button class="cancel">取消</button><button class="ok">确定</button></div></div>
