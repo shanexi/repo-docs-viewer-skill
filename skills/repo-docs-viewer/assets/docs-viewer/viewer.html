@@ -1439,6 +1439,49 @@
       return selectionSpanRect() ?? contentEl.getBoundingClientRect();
     }
 
+    function rangeTextPosition(range) {
+      let start = null;
+      let end = null;
+      let offset = 0;
+      const walker = document.createTreeWalker(contentEl, NodeFilter.SHOW_TEXT, {
+        acceptNode: (n) => n.parentElement?.closest("script,style")
+          ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT,
+      });
+      while (walker.nextNode()) {
+        const node = walker.currentNode;
+        if (node === range.startContainer) start = offset + range.startOffset;
+        if (node === range.endContainer) end = offset + range.endOffset;
+        offset += node.data.length;
+      }
+      return Number.isFinite(start) && Number.isFinite(end) && end > start ? { start, end } : null;
+    }
+
+    function nativeSelectionPayload() {
+      const sel = window.getSelection();
+      if (!sel?.rangeCount || sel.isCollapsed) return null;
+      const range = sel.getRangeAt(0);
+      if (!contentEl.contains(range.commonAncestorContainer)) return null;
+      const host = range.commonAncestorContainer.nodeType === 1
+        ? range.commonAncestorContainer
+        : range.commonAncestorContainer.parentElement;
+      if (host?.closest?.(".mermaid, #anno-pop, #sel-tools")) return null;
+      const exact = sel.toString().trim();
+      if (!exact) return null;
+      const pos = rangeTextPosition(range);
+      if (!pos) return null;
+      return {
+        "@context": "http://www.w3.org/ns/anno.jsonld",
+        type: "Annotation",
+        body: [],
+        target: {
+          selector: [
+            { type: "TextQuoteSelector", exact },
+            { type: "TextPositionSelector", start: pos.start, end: pos.end },
+          ],
+        },
+      };
+    }
+
     function showSelectionTools(anchorRect) {
       const mainEl = document.getElementById("main");
       const hostRect = mainEl.getBoundingClientRect();
@@ -1490,6 +1533,16 @@
       clearSelectionState();
     }
 
+    function showNativeSelectionTools() {
+      if (pop.style.display === "block") return;
+      const payload = nativeSelectionPayload();
+      if (!payload) return;
+      const rect = selectionRect();
+      const text = selectionTextFromPayload(payload);
+      pendingSelection = { payload, rect, text };
+      showSelectionTools(rect);
+    }
+
     r.on("createSelection", (selection) => {
       const an = window.getSelection()?.anchorNode;
       const inMermaid = an && ((an.nodeType === 1 ? an : an.parentElement)?.closest?.(".mermaid"));
@@ -1501,6 +1554,18 @@
         pendingSelection = { payload: selection, rect, text };
         showSelectionTools(rect);
       });
+    });
+
+    let nativeSelectionTimer = null;
+    function scheduleNativeSelectionTools() {
+      clearTimeout(nativeSelectionTimer);
+      nativeSelectionTimer = setTimeout(showNativeSelectionTools, 40);
+    }
+    contentEl.addEventListener("mouseup", scheduleNativeSelectionTools);
+    contentEl.addEventListener("keyup", scheduleNativeSelectionTools);
+    document.addEventListener("selectionchange", () => {
+      if (document.activeElement === popTa) return;
+      scheduleNativeSelectionTools();
     });
 
     r.on("selectAnnotation", (annotation, element) => {
@@ -1543,7 +1608,7 @@
       pop.addEventListener(type, (e) => e.stopPropagation());
     }
     pop.querySelector(".cancel").addEventListener("click", closePop);
-    pop.querySelector(".ok").addEventListener("click", () => {
+    pop.querySelector(".ok").addEventListener("click", async () => {
       if (!popTarget) return closePop();
       const value = popTa.value.trim();
       const body = value ? [{ type: "TextualBody", purpose: "commenting", value }] : [];
@@ -1558,7 +1623,13 @@
         const annotation = { ...target.payload, id: `#${crypto.randomUUID()}`, type: "Annotation", body };
         r.addAnnotation(annotation);
       } else {
-        if (!value) return;
+        if (!value) {
+          const next = r.getAnnotations().filter((a) => a.id !== target.payload.id);
+          await r.setAnnotations(next);
+          await persist();
+          renderComments();
+          return;
+        }
         r.addAnnotation({ ...target.payload, body });
       }
       persist();
