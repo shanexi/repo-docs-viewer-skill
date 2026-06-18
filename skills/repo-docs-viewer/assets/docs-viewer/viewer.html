@@ -1728,18 +1728,38 @@
     return (document.querySelector(".topbar")?.getBoundingClientRect().height ?? 0) + 12;
   }
 
-  const LONG_SCROLL_THRESHOLD_SCREENS = 1.4;
-  const LONG_SCROLL_TAIL_MIN_PX = 420;
-  const LONG_SCROLL_TAIL_MAX_PX = 760;
-  const LONG_SCROLL_TAIL_SCREEN_RATIO = 0.6;
-  function longScrollTailPx() {
-    return Math.round(Math.min(
-      LONG_SCROLL_TAIL_MAX_PX,
-      Math.max(LONG_SCROLL_TAIL_MIN_PX, mainEl.clientHeight * LONG_SCROLL_TAIL_SCREEN_RATIO),
+  const CUSTOM_SCROLL_THRESHOLD_SCREENS = 1.15;
+  const CUSTOM_SCROLL_MIN_MS = 220;
+  const CUSTOM_SCROLL_MAX_MS = 520;
+  let mainScrollAnimation = 0;
+  function cancelMainScrollAnimation() {
+    cancelAnimationFrame(mainScrollAnimation);
+    mainScrollAnimation = 0;
+  }
+  function animateMainScrollBy(delta) {
+    const startY = mainEl.scrollTop;
+    const maxY = Math.max(0, mainEl.scrollHeight - mainEl.clientHeight);
+    const targetY = Math.max(0, Math.min(maxY, startY + delta));
+    const distance = targetY - startY;
+    if (!distance) return;
+    cancelMainScrollAnimation();
+    const duration = Math.round(Math.min(
+      CUSTOM_SCROLL_MAX_MS,
+      Math.max(CUSTOM_SCROLL_MIN_MS, 160 + Math.sqrt(Math.abs(distance)) * 8),
     ));
+    const startedAt = performance.now();
+    const ease = (t) => 0.5 - Math.cos(Math.PI * t) / 2;
+    const step = (now) => {
+      const progress = Math.min(1, (now - startedAt) / duration);
+      mainEl.scrollTop = startY + distance * ease(progress);
+      if (progress < 1) mainScrollAnimation = requestAnimationFrame(step);
+      else mainScrollAnimation = 0;
+    };
+    mainScrollAnimation = requestAnimationFrame(step);
   }
   function scrollMainToElement(el, { behavior = "smooth", block = "start" } = {}) {
     if (!el) return;
+    cancelMainScrollAnimation();
     const mainRect = mainEl.getBoundingClientRect();
     const rect = el.getBoundingClientRect();
     const topOffset = topbarOffset();
@@ -1747,14 +1767,14 @@
     const top = block === "center"
       ? rect.top - mainRect.top - topOffset + (rect.height / 2) - (visibleHeight / 2)
       : rect.top - mainRect.top - topOffset;
-    if (behavior === "smooth" && Math.abs(top) > mainEl.clientHeight * LONG_SCROLL_THRESHOLD_SCREENS) {
-      const tail = Math.sign(top) * Math.min(Math.abs(top), longScrollTailPx());
-      mainEl.scrollBy({ top: top - tail, behavior: "auto" });
-      requestAnimationFrame(() => mainEl.scrollBy({ top: tail, behavior: "smooth" }));
+    if (behavior === "smooth" && Math.abs(top) > mainEl.clientHeight * CUSTOM_SCROLL_THRESHOLD_SCREENS) {
+      animateMainScrollBy(top);
       return;
     }
     mainEl.scrollBy({ top, behavior });
   }
+  mainEl.addEventListener("wheel", cancelMainScrollAnimation, { passive: true });
+  mainEl.addEventListener("touchstart", cancelMainScrollAnimation, { passive: true });
 
   function scrollToCurrent() {
     if (findIdx < 0) return;
