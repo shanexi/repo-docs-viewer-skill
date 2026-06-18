@@ -99,7 +99,10 @@
   #dia-overlay.with-comments #dia-close { right: calc(16px + var(--dia-cmt-w)); }
   #dia-overlay.with-comments #dia-boxbtn { right: calc(96px + var(--dia-cmt-w)); }
   #dia-overlay.with-comments #dia-hint { left: calc(50% - var(--dia-cmt-w) / 2); }
-  #dia-comments .dc-title { font: 600 13px system-ui; color: #56554e; margin-bottom: 10px; }
+  #dia-comments .dc-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+  #dia-comments .dc-title { font: 600 13px system-ui; color: #56554e; }
+  #dia-comments .dc-close { border: 1px solid transparent; background: transparent; color: #8e8d86; border-radius: 6px; font: 16px/1 system-ui; padding: 3px 6px; cursor: pointer; }
+  #dia-comments .dc-close:hover { background: #f0eee5; color: #56554e; }
   #dia-comments .dc-empty { font: 13px system-ui; color: #9b9a92; }
   #dia-comments .dc-item { background: #fff; border: 1px solid rgba(0,0,0,.08); border-radius: 8px; padding: 10px; margin-bottom: 8px; cursor: pointer; }
   #dia-comments .dc-item:hover { border-color: #e3a886; background: #fffdfb; }
@@ -152,6 +155,9 @@
   #dia-boxbtn { position: absolute; top: 14px; right: 96px; z-index: 101; border: 1px solid #d9d8d3; background: #fff; color: #56554e; border-radius: 8px; font: 14px system-ui; padding: 4px 12px; cursor: pointer; }
   #dia-boxbtn:hover { background: #f0eee5; }
   #dia-boxbtn.active { background: #d97757; border-color: #d97757; color: #fff; }
+  #dia-commentbtn { position: absolute; top: 14px; right: 216px; z-index: 101; display: none; border: 1px solid #e3a886; background: rgba(255,246,240,.96); color: #8a5a44; border-radius: 8px; font: 13px system-ui; padding: 4px 9px; cursor: pointer; }
+  #dia-commentbtn:hover { background: #f7ece3; }
+  #dia-overlay.show.has-comments:not(.with-comments) #dia-commentbtn { display: block; }
   #dia-stage.boxmode svg { cursor: crosshair !important; }
   #dia-box-rect { position: fixed; display: none; border: 1.5px solid #d97757; background: rgba(217,119,87,.16); pointer-events: none; z-index: 102; }
   #dia-box-pop { position: fixed; z-index: 103; width: 340px; background: #fff; border: 1px solid rgba(0,0,0,.12); border-radius: 12px; box-shadow: 0 8px 28px rgba(0,0,0,.22); overflow: hidden; display: none; }
@@ -194,7 +200,7 @@
   </div>
 </div>
 <div id="img-overlay"><div id="img-stage"><img id="img-full" alt=""></div><button id="img-close">✕ 关闭</button><div id="img-hint">滚轮缩放 · 拖拽平移 · 双击复位 · Esc 关闭</div><div id="img-caption"></div></div>
-<div id="dia-overlay"><div id="dia-stage"></div><div id="dia-resizer"></div><div id="dia-comments"></div><div id="dia-box-rect"></div><button id="dia-boxbtn" title="框选图中区域评论">▢ 框选评论</button><button id="dia-close">✕ 关闭</button><div id="dia-hint">滚轮缩放 · 拖拽平移 · 「▢ 框选评论」框选区域 · 双击复位 · Esc 关闭</div><div id="dia-box-pop"><div id="dia-box-extract"></div><textarea placeholder="评论这块区域…"></textarea><div class="foot"><button class="cancel">取消</button><button class="ok">确定</button></div></div></div>
+<div id="dia-overlay"><div id="dia-stage"></div><div id="dia-resizer"></div><div id="dia-comments"></div><div id="dia-box-rect"></div><button id="dia-commentbtn" title="查看本图评论">💬</button><button id="dia-boxbtn" title="框选图中区域评论">▢ 框选评论</button><button id="dia-close">✕ 关闭</button><div id="dia-hint">滚轮缩放 · 拖拽平移 · 「▢ 框选评论」框选区域 · 双击复位 · Esc 关闭</div><div id="dia-box-pop"><div id="dia-box-extract"></div><textarea placeholder="评论这块区域…"></textarea><div class="foot"><button class="cancel">取消</button><button class="ok">确定</button></div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/@recogito/recogito-js@1.8.4/dist/recogito.min.js"></script>
 <script type="module">
   const app = document.getElementById("app");
@@ -1304,18 +1310,33 @@
     function closeDiagram() {
       diaOverlay.classList.remove("show");
       diaOverlay.classList.remove("with-comments");
+      diaOverlay.classList.remove("has-comments");
       diaStage.innerHTML = "";
       dia.svg = null;
       dia.drag = null;
+    }
+    function diaCommentCount(idx = dia.diagramIndex) {
+      return boxAnnotations.filter((a) => (boxSelOf(a).diagramIndex ?? -1) === idx).length;
+    }
+    function updateDiaCommentButton(idx = dia.diagramIndex) {
+      const n = diaCommentCount(idx);
+      diaOverlay.classList.toggle("has-comments", n > 0);
+      const btn = document.getElementById("dia-commentbtn");
+      btn.textContent = n > 0 ? `💬 ${n}` : "💬";
+    }
+    function hideDiaComments() {
+      diaOverlay.classList.remove("with-comments");
+      updateDiaCommentButton();
     }
     // 全屏态侧栏：展示本图的框选评论（badge 点击 = 先全屏图、再侧边评论）
     function showDiaComments(idx) {
       const list = boxAnnotations.filter((a) => (boxSelOf(a).diagramIndex ?? -1) === idx);
       const commentsEl = document.getElementById("dia-comments");
       commentsEl.innerHTML =
-        `<div class="dc-title">本图评论 · ${list.length}</div>` + (list.length
+        `<div class="dc-head"><div class="dc-title">本图评论 · ${list.length}</div><button class="dc-close" type="button" title="收起评论">×</button></div>` + (list.length
           ? list.map((a, i) => `<div class="dc-item" data-i="${i}" title="点击编辑评论"><div class="dc-extract">▢ ${boxSelOf(a).extractedText || "（无文字）"}</div><div class="dc-body">${bodyOf(a) || "（空）"}</div></div>`).join("")
           : `<div class="dc-empty">本图暂无评论</div>`);
+      commentsEl.querySelector(".dc-close")?.addEventListener("click", hideDiaComments);
       for (const item of commentsEl.querySelectorAll(".dc-item")) {
         item.addEventListener("click", () => {
           const a = list[Number(item.dataset.i)];
@@ -1325,11 +1346,12 @@
         });
       }
       diaOverlay.classList.add("with-comments");
+      updateDiaCommentButton(idx);
     }
     function syncDiaCommentsVisibility() {
       if (dia.diagramIndex < 0) return;
-      const hasComments = boxAnnotations.some((a) => (boxSelOf(a).diagramIndex ?? -1) === dia.diagramIndex);
-      if (hasComments) {
+      updateDiaCommentButton();
+      if (diaCommentCount() > 0) {
         showDiaComments(dia.diagramIndex);
       } else {
         diaOverlay.classList.remove("with-comments");
@@ -1338,6 +1360,9 @@
     }
     window.__openDiagram = openDiagram;
     window.__showDiaComments = showDiaComments;
+    document.getElementById("dia-commentbtn").addEventListener("click", () => {
+      if (dia.diagramIndex >= 0) showDiaComments(dia.diagramIndex);
+    });
     // 评论栏拖动 resize（改 --dia-cmt-w，左图右评论双栏）
     const diaResizer = document.getElementById("dia-resizer");
     let diaResizing = false;
