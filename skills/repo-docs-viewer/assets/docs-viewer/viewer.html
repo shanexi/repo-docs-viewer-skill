@@ -1894,19 +1894,10 @@
       outlineEl.innerHTML = outlineHtml;
       outlinePeekList.innerHTML = outlineHtml;
       outlinePeekTrigger.innerHTML = miniHtml;
-      const handleOutlineClick = (e, { closePeek = false } = {}) => {
-        const item = e.target.closest(".ol-item");
-        if (!item) return;
-        scrollMainToElement(headings[Number(item.dataset.i)]);
-        if (closePeek) {
-          hideOutlinePeek();
-          outlinePeekTrigger.blur();
-        }
-      };
-      outlineEl.onclick = handleOutlineClick;
-      outlinePeekList.addEventListener("click", (e) => handleOutlineClick(e, { closePeek: true }), { capture: true });
       const mainEl = document.getElementById("main");
       let activeOutlineIndex = 0;
+      let outlineClickTarget = -1;
+      let outlineClickLockUntil = 0;
       const syncMiniOutline = (active) => {
         for (const el of outlinePeekTrigger.children) {
           const on = Number(el.dataset.i) === active;
@@ -1924,6 +1915,33 @@
         if (!outlinePeek.classList.contains("show")) return;
         outlinePeekList.querySelector(`[data-i="${activeOutlineIndex}"]`)?.scrollIntoView({ block: "center" });
       };
+      const paintOutlineActive = (active) => {
+        activeOutlineIndex = active;
+        if (active === renderedOutlineIndex) return;
+        renderedOutlineIndex = active;
+        syncMiniOutline(active);
+        for (const list of [outlineEl, outlinePeekList]) {
+          for (const el of list.children) {
+            const on = Number(el.dataset.i) === active;
+            el.classList.toggle("active", on);
+          }
+        }
+      };
+      const handleOutlineClick = (e, { closePeek = false } = {}) => {
+        const item = e.target.closest(".ol-item");
+        if (!item) return;
+        const targetIndex = Number(item.dataset.i);
+        outlineClickTarget = targetIndex;
+        outlineClickLockUntil = performance.now() + 900;
+        paintOutlineActive(targetIndex);
+        scrollMainToElement(headings[targetIndex]);
+        if (closePeek) {
+          hideOutlinePeek();
+          outlinePeekTrigger.blur();
+        }
+      };
+      outlineEl.onclick = handleOutlineClick;
+      outlinePeekList.addEventListener("click", (e) => handleOutlineClick(e, { closePeek: true }), { capture: true });
       let headingTops = [];
       let metricsScheduled = false;
       let spyScheduled = false;
@@ -1934,7 +1952,7 @@
       };
       const activeHeadingFromScroll = () => {
         if (!headingTops.length) refreshOutlineMetrics();
-        const y = mainEl.scrollTop + topbarOffset();
+        const y = mainEl.scrollTop + topbarOffset() + Math.min(48, mainEl.clientHeight * 0.08);
         let lo = 0;
         let hi = headingTops.length - 1;
         let active = 0;
@@ -1950,17 +1968,8 @@
         return active;
       };
       const syncOutlineActive = () => {
-        const active = activeHeadingFromScroll();
-        activeOutlineIndex = active;
-        if (active === renderedOutlineIndex) return;
-        renderedOutlineIndex = active;
-        syncMiniOutline(active);
-        for (const list of [outlineEl, outlinePeekList]) {
-          for (const el of list.children) {
-            const on = Number(el.dataset.i) === active;
-            el.classList.toggle("active", on);
-          }
-        }
+        const active = performance.now() < outlineClickLockUntil ? outlineClickTarget : activeHeadingFromScroll();
+        paintOutlineActive(active);
       };
       const scheduleOutlineMetricsRefresh = () => {
         if (metricsScheduled) return;
