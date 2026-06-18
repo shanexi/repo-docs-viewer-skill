@@ -60,12 +60,10 @@
   .t-dir.open > .t-row .chev { transform: rotate(90deg); }
   .kids { display: none; }
   .t-dir.open > .kids { display: block; }
-  .name { overflow: hidden; text-overflow: ellipsis; }
-  .badge { margin-left: auto; flex: none; font-size: 11px; color: #b08968; }
-  .star { flex: none; border: none; background: none; cursor: pointer; color: #bf8700; font-size: 12px; padding: 0 2px; visibility: hidden; line-height: 1; }
+  .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .badge { flex: none; min-width: 24px; margin-left: 8px; font-size: 11px; color: #b08968; }
+  .star { margin-left: auto; flex: none; border: none; background: none; cursor: pointer; color: #bf8700; font-size: 12px; padding: 0 2px; visibility: hidden; line-height: 1; }
   .t-row:hover .star, .star.on { visibility: visible; }
-  .t-row .badge + .star { margin-left: 2px; }
-  .t-row .star:only-of-type { margin-left: auto; }
   #pins .t-row .name { font-size: 12px; }
   #content { padding: 10px 24px 100px; }
   .app.no-side.has-outline #content { padding-left: var(--collapsed-outline-gutter); }
