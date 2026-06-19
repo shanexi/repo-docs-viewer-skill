@@ -2512,7 +2512,7 @@
       contentEl.normalize();
     }
     function paintNativeSelectionRange(range) {
-      if (!range || range.collapsed) return;
+      if (!range || range.collapsed) return 0;
       const parts = [];
       const walker = document.createTreeWalker(contentEl, NodeFilter.SHOW_TEXT, {
         acceptNode: (node) => {
@@ -2539,6 +2539,15 @@
           span.remove();
         }
       }
+      return contentEl.querySelectorAll(".r6o-selection").length;
+    }
+    function ensureTransientSelection(range, payload, { replace = false } = {}) {
+      if (replace) clearSelectionSpans();
+      let painted = contentEl.querySelectorAll(".r6o-selection").length;
+      if (!painted) painted = paintNativeSelectionRange(range);
+      if (!painted) painted = paintNativeSelectionRange(rangeFromSelectionPayload(payload));
+      if (painted) window.getSelection()?.removeAllRanges();
+      return painted;
     }
     function clearSelectionState() {
       pendingSelection = null;
@@ -2572,10 +2581,7 @@
       const rect = selectionRect();
       const text = selectionTextFromPayload(payload);
       pendingSelection = { payload, rect, text };
-      if (!hasRecogitoSelection) {
-        clearSelectionSpans();
-        paintNativeSelectionRange(nativeRange ?? rangeFromSelectionPayload(payload));
-      }
+      ensureTransientSelection(nativeRange, payload, { replace: !hasRecogitoSelection });
       showSelectionTools(rect);
     }
 
@@ -2591,9 +2597,7 @@
         if (!text) return dismissSelectionTools();
         const rect = selectionRect();
         pendingSelection = { payload: selection, rect, text };
-        if (!contentEl.querySelector(".r6o-selection")) {
-          paintNativeSelectionRange(nativeRange ?? rangeFromSelectionPayload(selection));
-        }
+        ensureTransientSelection(nativeRange, selection);
         showSelectionTools(rect);
       });
     });
