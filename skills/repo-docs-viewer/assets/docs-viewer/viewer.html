@@ -114,9 +114,9 @@
   /* with-comments 时顶部工具和提示避让到左侧图区，不被评论栏遮住 */
   #dia-overlay.with-comments #dia-actions { right: calc(16px + var(--dia-cmt-w)); max-width: calc(100vw - var(--dia-cmt-w) - 32px); }
   #dia-overlay.with-comments #dia-hint { left: calc(50% - var(--dia-cmt-w) / 2); }
-  #dia-comments .dc-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+  #dia-comments .dc-head { display: flex; align-items: center; justify-content: flex-start; gap: 8px; margin-bottom: 10px; padding-right: 44px; }
   #dia-comments .dc-title { font: 600 13px system-ui; color: #56554e; }
-  #dia-comments .dc-close { border: 1px solid transparent; background: transparent; color: #8e8d86; border-radius: 6px; font: 16px/1 system-ui; padding: 3px 6px; cursor: pointer; }
+  #dia-comments .dc-close { border: 1px solid transparent; background: transparent; color: #8e8d86; border-radius: 6px; font: 12px/1 system-ui; padding: 4px 6px; cursor: pointer; }
   #dia-comments .dc-close:hover { background: #f0eee5; color: #56554e; }
   #dia-comments .dc-empty { font: 13px system-ui; color: #9b9a92; }
   #dia-comments .dc-item { background: #fff; border: 1px solid rgba(0,0,0,.08); border-radius: 8px; padding: 10px; margin-bottom: 8px; cursor: pointer; }
@@ -126,8 +126,8 @@
   #dia-stage svg { width: 100%; height: 100%; display: block; cursor: grab; user-select: none; }
   #dia-stage.dragging svg { cursor: grabbing; }
   #dia-stage svg text, #dia-stage svg tspan, #dia-stage svg foreignObject, #dia-stage svg foreignObject * { user-select: text; cursor: text; }
-  #dia-actions { position: absolute; top: 14px; right: 16px; z-index: 106; display: flex; align-items: center; justify-content: flex-end; gap: 8px; max-width: calc(100vw - 32px); }
-  #dia-close { position: static; flex: none; border: 1px solid #d9d8d3; background: #fff; color: #56554e; border-radius: 8px; font: 14px system-ui; padding: 4px 12px; cursor: pointer; }
+  #dia-actions { position: absolute; top: 14px; right: 104px; z-index: 106; display: flex; align-items: center; justify-content: flex-end; gap: 8px; max-width: calc(100vw - 120px); }
+  #dia-close { position: absolute; top: 14px; right: 16px; z-index: 108; min-width: 44px; min-height: 36px; border: 1px solid #d9d8d3; background: #fff; color: #56554e; border-radius: 8px; font: 14px system-ui; padding: 4px 12px; cursor: pointer; }
   #dia-close:hover { background: #f0eee5; }
   #dia-hint { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); color: #8e8d86; font: 12px system-ui; background: rgba(255,255,255,.85); padding: 4px 12px; border-radius: 12px; }
   .r6o-annotation, .r6o-selection { background: rgba(217, 119, 87, .16); border-bottom: 2px solid rgba(217, 119, 87, .65); cursor: pointer; }
@@ -488,11 +488,14 @@
   html[data-view="mobile"] #dia-resizer { display: none !important; }
   html[data-view="mobile"] #dia-actions {
     top: max(10px, env(safe-area-inset-top));
-    right: max(10px, env(safe-area-inset-right));
-    max-width: calc(100vw - max(20px, env(safe-area-inset-left) + env(safe-area-inset-right) + 20px));
+    right: calc(max(10px, env(safe-area-inset-right)) + 96px);
+    max-width: calc(100vw - max(116px, env(safe-area-inset-left) + env(safe-area-inset-right) + 116px));
     gap: 6px;
   }
-  html[data-view="mobile"] #dia-overlay.with-comments #dia-actions { right: max(10px, env(safe-area-inset-right)); max-width: calc(100vw - 20px); }
+  html[data-view="mobile"] #dia-overlay.with-comments #dia-actions {
+    right: calc(max(10px, env(safe-area-inset-right)) + 96px);
+    max-width: calc(100vw - 116px);
+  }
   html[data-view="mobile"] #dia-overlay.with-comments #dia-hint { left: 50%; }
   html[data-view="mobile"] #dia-boxbtn {
     max-width: min(48vw, 190px);
@@ -544,7 +547,7 @@
   </div>
 </div>
 <div id="img-overlay"><div id="img-stage"><img id="img-full" alt=""></div><button id="img-close">✕ 关闭</button><div id="img-hint">滚轮缩放 · 拖拽平移 · 双击复位 · Esc 关闭</div><div id="img-caption"></div></div>
-<div id="dia-overlay"><div id="dia-stage"></div><div id="dia-resizer"></div><div id="dia-comments"></div><div id="dia-box-rect"></div><div id="dia-actions"><button id="dia-commentbtn" title="查看本图评论">💬</button><button id="dia-boxbtn" title="框选图中区域评论">▢ 框选评论</button><button id="dia-close">✕ 关闭</button></div><div id="dia-hint">滚轮缩放 · 拖拽平移 · 「▢ 框选评论」框选区域 · 双击复位 · Esc 关闭</div><div id="dia-box-pop"><div id="dia-box-extract"></div><textarea placeholder="评论这块区域…"></textarea><div class="foot"><button class="cancel">取消</button><button class="ok">确定</button></div></div></div>
+<div id="dia-overlay"><div id="dia-stage"></div><div id="dia-resizer"></div><div id="dia-comments"></div><div id="dia-box-rect"></div><div id="dia-actions"><button id="dia-commentbtn" title="查看本图评论">💬</button><button id="dia-boxbtn" title="框选图中区域评论">▢ 框选评论</button></div><button id="dia-close">✕ 关闭</button><div id="dia-hint">滚轮缩放 · 拖拽平移 · 「▢ 框选评论」框选区域 · 双击复位 · Esc 关闭</div><div id="dia-box-pop"><div id="dia-box-extract"></div><textarea placeholder="评论这块区域…"></textarea><div class="foot"><button class="cancel">取消</button><button class="ok">确定</button></div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/@recogito/recogito-js@1.8.4/dist/recogito.min.js"></script>
 <script type="module">
   const app = document.getElementById("app");
@@ -633,6 +636,7 @@
       diagramComments: "本图评论 · {count}",
       showDiagramComments: "查看本图评论",
       hideComments: "收起评论",
+      hideCommentsShort: "收起",
       boxComment: "框选评论",
       boxExtract: "框选到：{text}",
       noBoxText: "框内无文字",
@@ -692,6 +696,7 @@
       diagramComments: "Diagram comments · {count}",
       showDiagramComments: "View diagram comments",
       hideComments: "Collapse comments",
+      hideCommentsShort: "Hide",
       boxComment: "Box comment",
       boxExtract: "Selected: {text}",
       noBoxText: "No text in region",
@@ -2208,7 +2213,7 @@
       const list = boxAnnotations.filter((a) => (boxSelOf(a).diagramIndex ?? -1) === idx);
       const commentsEl = document.getElementById("dia-comments");
       commentsEl.innerHTML =
-        `<div class="dc-head"><div class="dc-title">${t("diagramComments", { count: list.length })}</div><button class="dc-close" type="button" title="${t("hideComments")}">×</button></div>` + (list.length
+        `<div class="dc-head"><div class="dc-title">${t("diagramComments", { count: list.length })}</div><button class="dc-close" type="button" title="${t("hideComments")}">${t("hideCommentsShort")}</button></div>` + (list.length
           ? list.map((a, i) => `<div class="dc-item" data-i="${i}" title="${t("commentPlaceholder")}"><div class="dc-extract">▢ ${boxSelOf(a).extractedText || `（${t("noText")}）`}</div><div class="dc-body">${bodyOf(a) || `（${t("empty")}）`}</div></div>`).join("")
           : `<div class="dc-empty">${t("noDocComments")}</div>`);
       commentsEl.querySelector(".dc-close")?.addEventListener("click", hideDiaComments);
