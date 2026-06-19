@@ -2390,6 +2390,65 @@
       return Number.isFinite(start) && Number.isFinite(end) && end > start ? { start, end } : null;
     }
 
+    function textPositionRange(pos) {
+      const startPos = Number(pos?.start);
+      const endPos = Number(pos?.end);
+      if (!Number.isFinite(startPos) || !Number.isFinite(endPos) || endPos <= startPos) return null;
+      let start = null;
+      let end = null;
+      let offset = 0;
+      const walker = document.createTreeWalker(contentEl, NodeFilter.SHOW_TEXT, {
+        acceptNode: (n) => n.parentElement?.closest("script,style,.mermaid")
+          ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT,
+      });
+      while (walker.nextNode()) {
+        const node = walker.currentNode;
+        const nextOffset = offset + node.data.length;
+        if (!start && startPos >= offset && startPos <= nextOffset) start = { node, offset: startPos - offset };
+        if (!end && endPos >= offset && endPos <= nextOffset) end = { node, offset: endPos - offset };
+        offset = nextOffset;
+        if (start && end) break;
+      }
+      if (!start || !end) return null;
+      const range = document.createRange();
+      range.setStart(start.node, start.offset);
+      range.setEnd(end.node, end.offset);
+      return range;
+    }
+
+    function quoteRange(exact) {
+      if (!exact) return null;
+      const nodes = [];
+      let text = "";
+      const walker = document.createTreeWalker(contentEl, NodeFilter.SHOW_TEXT, {
+        acceptNode: (n) => n.parentElement?.closest("script,style,.mermaid")
+          ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT,
+      });
+      while (walker.nextNode()) {
+        const node = walker.currentNode;
+        nodes.push({ node, start: text.length, end: text.length + node.data.length });
+        text += node.data;
+      }
+      const startPos = text.indexOf(exact);
+      if (startPos < 0) return null;
+      const endPos = startPos + exact.length;
+      const start = nodes.find((n) => startPos >= n.start && startPos <= n.end);
+      const end = nodes.find((n) => endPos >= n.start && endPos <= n.end);
+      if (!start || !end) return null;
+      const range = document.createRange();
+      range.setStart(start.node, startPos - start.start);
+      range.setEnd(end.node, endPos - end.start);
+      return range;
+    }
+
+    function rangeFromSelectionPayload(selection) {
+      const sel = selection?.target?.selector ?? selection?.selector ?? [];
+      const selectors = Array.isArray(sel) ? sel : [sel];
+      const pos = selectors.find((s) => s?.type === "TextPositionSelector");
+      const quote = selectors.find((s) => s?.type === "TextQuoteSelector");
+      return textPositionRange(pos) ?? quoteRange(quote?.exact);
+    }
+
     function nativeSelectionPayload() {
       const sel = window.getSelection();
       if (!sel?.rangeCount || sel.isCollapsed) return null;
@@ -2452,6 +2511,35 @@
       }
       contentEl.normalize();
     }
+    function paintNativeSelectionRange(range) {
+      if (!range || range.collapsed) return;
+      const parts = [];
+      const walker = document.createTreeWalker(contentEl, NodeFilter.SHOW_TEXT, {
+        acceptNode: (node) => {
+          const parent = node.parentElement;
+          if (!parent || parent.closest("script,style,.mermaid,#anno-pop,#sel-tools")) return NodeFilter.FILTER_REJECT;
+          return range.intersectsNode(node) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+        },
+      });
+      while (walker.nextNode()) {
+        const node = walker.currentNode;
+        const start = node === range.startContainer ? range.startOffset : 0;
+        const end = node === range.endContainer ? range.endOffset : node.data.length;
+        if (start < end) parts.push({ node, start, end });
+      }
+      for (const { node, start, end } of parts.reverse()) {
+        const piece = document.createRange();
+        piece.setStart(node, start);
+        piece.setEnd(node, end);
+        const span = document.createElement("span");
+        span.className = "r6o-selection";
+        try {
+          piece.surroundContents(span);
+        } catch {
+          span.remove();
+        }
+      }
+    }
     function clearSelectionState() {
       pendingSelection = null;
       window.getSelection()?.removeAllRanges();
@@ -2477,16 +2565,23 @@
     function showNativeSelectionTools() {
       if (performance.now() < suppressSelectionToolsUntil) return;
       if (pop.style.display === "block") return;
+      const nativeRange = window.getSelection()?.rangeCount ? window.getSelection().getRangeAt(0).cloneRange() : null;
+      const hasRecogitoSelection = !!contentEl.querySelector(".r6o-selection");
       const payload = nativeSelectionPayload();
       if (!payload) return;
       const rect = selectionRect();
       const text = selectionTextFromPayload(payload);
       pendingSelection = { payload, rect, text };
+      if (!hasRecogitoSelection) {
+        clearSelectionSpans();
+        paintNativeSelectionRange(nativeRange ?? rangeFromSelectionPayload(payload));
+      }
       showSelectionTools(rect);
     }
 
     r.on("createSelection", (selection) => {
       if (performance.now() < suppressSelectionToolsUntil) return;
+      const nativeRange = window.getSelection()?.rangeCount ? window.getSelection().getRangeAt(0).cloneRange() : null;
       const an = window.getSelection()?.anchorNode;
       const inMermaid = an && ((an.nodeType === 1 ? an : an.parentElement)?.closest?.(".mermaid"));
       if (inMermaid) { window.getSelection()?.removeAllRanges(); clearSelectionSpans(); return; }  // 图不支持划线，用放大态框选
@@ -2496,6 +2591,9 @@
         if (!text) return dismissSelectionTools();
         const rect = selectionRect();
         pendingSelection = { payload: selection, rect, text };
+        if (!contentEl.querySelector(".r6o-selection")) {
+          paintNativeSelectionRange(nativeRange ?? rangeFromSelectionPayload(selection));
+        }
         showSelectionTools(rect);
       });
     });
