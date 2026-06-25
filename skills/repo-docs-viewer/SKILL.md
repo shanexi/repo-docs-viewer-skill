@@ -113,7 +113,17 @@ The viewer stores annotations inside the markdown file in a trailing HTML commen
 - They can be committed, so annotation history follows normal git history.
 - Concurrent writes use the annotation block `updatedAt` baseline; a stale write returns `409`.
 
-When resolving comments, read and modify the markdown file directly if needed. Avoid sidecar annotation files unless a repo has deliberately forked the viewer.
+Avoid sidecar annotation files unless a repo has deliberately forked the viewer.
+
+### Resolving review comments
+
+A comment is **review feedback on the document**, not a chat message to answer in place. When the user says a doc "has comments" / asks you to handle, address, or resolve them, follow exactly these three steps — in order — for each comment:
+
+1. **Read** the comment's `value` and what its selector anchors to in the body.
+2. **Act in the document body**: edit the prose at (or near) the anchor — revise stale/incorrect content, answer the question by making the doc say the answer, delete what the comment flags as wrong. The edit *is* your response. If the comment is process feedback about your workflow rather than the doc's content, do the corresponding work elsewhere (e.g. update a skill or config) and do **not** record that exchange in the doc.
+3. **Clear** the resolved annotation from the trailing block (drop that annotation object; remove the whole block once all are resolved).
+
+**Never write a reply *into* the annotation block.** Do not add a `body` item, append to the comment's `value`, or create a "↳ reply" annotation. The viewer renders an annotation by joining every `body[].value` with newlines, so a reply there just corrupts the original comment text. There is no reply UI — the loop is **edit the doc, then clear the comment**, never "answer the comment object." (This is the single most common mistake: treating comments as a conversation thread instead of as edits-to-make.)
 
 ## Portability Notes
 
