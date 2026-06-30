@@ -2,7 +2,6 @@
 <meta charset="utf-8">
 <title>docs</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/github-markdown-css@5/github-markdown-light.min.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@recogito/recogito-js@1.8.4/dist/recogito.min.css">
 <script>
   (() => {
     const mode = localStorage.getItem("docs-viewer:theme") || "system";
@@ -94,6 +93,14 @@
   .missing-asset { display: inline-block; border: 1px dashed #d9d8d3; border-radius: 6px; padding: 6px 9px; color: #8a5a44; background: #faf6f0; font: 12px/1.4 system-ui; }
   .markdown-body pre.mermaid { background: transparent; text-align: center; }
   .markdown-body pre.mermaid svg { cursor: zoom-in; }
+  .mm-actions { position: absolute; top: 6px; right: 6px; z-index: 5; display: inline-flex; align-items: center; gap: 5px; }
+  .mm-copy-source,
+  .mm-box-badge { border: 1px solid #e3a886; background: rgba(255,246,240,.95); border-radius: 6px; font: 11px system-ui; color: #b08968; padding: 2px 8px; cursor: pointer; }
+  .mm-copy-source { width: 26px; height: 22px; display: inline-grid; place-items: center; padding: 0; opacity: .72; }
+  .mm-copy-source svg { width: 13px; height: 13px; stroke: currentColor; }
+  .mm-actions:hover .mm-copy-source,
+  .mm-copy-source:focus-visible,
+  .mm-copy-source.copied { opacity: 1; }
   #img-overlay { position: fixed; inset: 0; z-index: 120; background: rgba(20,19,17,.9); display: none; }
   #img-overlay.show { display: block; }
   #img-stage { position: absolute; inset: 0; overflow: hidden; background: #111; }
@@ -132,7 +139,8 @@
   #dia-close { position: absolute; top: 12px; right: 12px; z-index: 108; width: 32px; height: 32px; min-width: 32px; min-height: 32px; display: grid; place-items: center; border: 1px solid transparent; background: rgba(255,255,255,.88); color: #706f68; border-radius: 8px; font: 20px/1 system-ui; padding: 0; cursor: pointer; }
   #dia-close:hover { border-color: #d9d8d3; background: #fff; color: #56554e; }
   #dia-hint { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); color: #8e8d86; font: 12px system-ui; background: rgba(255,255,255,.85); padding: 4px 12px; border-radius: 12px; }
-  .r6o-annotation, .r6o-selection { background: rgba(217, 119, 87, .16); border-bottom: 2px solid rgba(217, 119, 87, .65); cursor: pointer; }
+  .r6o-annotation { background: rgba(217, 119, 87, .16); border-bottom: 2px solid rgba(217, 119, 87, .65); cursor: pointer; }
+  .r6o-selection { background: rgba(83, 135, 235, .16); border-bottom: 2px solid rgba(83, 135, 235, .65); cursor: text; }
   .r6o-annotation:hover { background: rgba(217, 119, 87, .28); }
   #anno-pop { position: absolute; z-index: 50; width: 340px; background: #fff; border: 1px solid rgba(0,0,0,.1); border-radius: 12px; box-shadow: 0 8px 28px rgba(0,0,0,.14); overflow: hidden; display: none; }
   #anno-pop textarea { width: 100%; min-height: 72px; border: none; outline: none; resize: vertical; font-size: calc(14px * var(--zoom, 1)); line-height: 1.6; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; padding: 12px 12px 6px; color: #1a1915; background: #fff; }
@@ -172,9 +180,13 @@
   .ol-h1 { font-weight: 600; color: #3b3a35; }
   .ol-h2 { font-weight: 500; color: #3b3a35; }
   .ol-empty { padding: 10px 14px; color: #9b9a92; font: 12px system-ui; font-size: clamp(10px, calc(12px * var(--zoom, 1)), 18px); }
-  .mm-box-badge { position: absolute; top: 6px; right: 6px; z-index: 5; border: 1px solid #e3a886; background: rgba(255,246,240,.95); border-radius: 6px; font: 11px system-ui; color: #b08968; padding: 2px 8px; cursor: pointer; }
+  .mm-copy-source:hover,
   .mm-box-badge:hover { background: #f7ece3; }
+  #dia-copy-source { position: static; flex: none; width: 34px; min-width: 34px; height: 30px; display: inline-grid; place-items: center; border: 1px solid #d9d8d3; background: #fff; color: #56554e; border-radius: 8px; cursor: pointer; padding: 0; }
+  #dia-copy-source svg { width: 15px; height: 15px; stroke: currentColor; }
+  #dia-copy-source:disabled { opacity: .45; cursor: default; }
   #dia-boxbtn { position: static; flex: 1 1 auto; min-width: 0; border: 1px solid #d9d8d3; background: #fff; color: #56554e; border-radius: 8px; font: 14px system-ui; padding: 4px 12px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #dia-copy-source:hover:not(:disabled),
   #dia-boxbtn:hover { background: #f0eee5; }
   #dia-boxbtn.active { background: #d97757; border-color: #d97757; color: #fff; }
   #dia-commentbtn { position: static; flex: none; display: none; border: 1px solid #e3a886; background: rgba(255,246,240,.96); color: #8a5a44; border-radius: 8px; font: 13px system-ui; padding: 4px 9px; cursor: pointer; }
@@ -311,6 +323,7 @@
   .zoom-ctl button:hover,
   .stab:hover,
   #img-close:hover,
+  #dia-copy-source:hover:not(:disabled),
   #dia-boxbtn:hover,
   #dia-commentbtn:hover { background: var(--surface-muted); }
   #pin-peek,
@@ -399,8 +412,21 @@
   .cmt .q,
   .ol-item { color: var(--text-muted); }
   .ol-item.active { border-left-color: var(--accent); background: var(--surface-tint); color: var(--text); }
+  .mm-copy-source,
   .mm-box-badge,
   #dia-commentbtn { background: color-mix(in srgb, var(--surface-tint) 88%, transparent); border-color: var(--accent-border); }
+  .mm-copy-source,
+  .mm-box-badge { color: var(--badge); }
+  .mm-copy-source:hover,
+  .mm-copy-source.copied,
+  .mm-box-badge:hover { background: var(--surface-muted); color: var(--text-soft); }
+  #dia-copy-source {
+    border-color: var(--border-strong);
+    background: var(--surface);
+    color: var(--text-soft);
+  }
+  #dia-copy-source:hover:not(:disabled),
+  #dia-copy-source.copied { background: var(--surface-muted); color: var(--text); }
   #dia-boxbtn.active,
   #anno-pop .ok,
   #dia-box-pop .ok { background: var(--accent); border-color: var(--accent); color: #fff; }
@@ -409,7 +435,8 @@
   #dia-box-pop .cancel { border-color: var(--border-strong); color: var(--text-soft); }
   #anno-pop .foot,
   #dia-box-pop .foot { background: var(--surface-soft); border-top-color: var(--border-soft); }
-  .r6o-annotation, .r6o-selection { background: var(--accent-soft); border-bottom-color: color-mix(in srgb, var(--accent) 70%, transparent); }
+  .r6o-annotation { background: var(--accent-soft); border-bottom-color: color-mix(in srgb, var(--accent) 70%, transparent); }
+  .r6o-selection { background: color-mix(in srgb, #6aa0ff 18%, transparent); border-bottom-color: color-mix(in srgb, #6aa0ff 65%, transparent); }
   .r6o-annotation:hover { background: color-mix(in srgb, var(--accent-soft) 75%, var(--accent)); }
   #sel-tools.copied #sel-copy { color: var(--success); background: var(--success-bg); border-color: var(--success-border); }
 
@@ -534,6 +561,11 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
+  html[data-view="mobile"] #dia-copy-source {
+    width: 40px;
+    min-width: 40px;
+    height: 38px;
+  }
   html[data-view="mobile"] #dia-commentbtn {
     min-width: 48px;
   }
@@ -578,8 +610,7 @@
   </div>
 </div>
 <div id="img-overlay"><div id="img-stage"><img id="img-full" alt=""></div><button id="img-close">✕ 关闭</button><div id="img-hint">滚轮缩放 · 拖拽平移 · 双击复位 · Esc 关闭</div><div id="img-caption"></div></div>
-<div id="dia-overlay"><div id="dia-stage"></div><div id="dia-resizer"></div><div id="dia-comments"></div><div id="dia-box-rect"></div><div id="dia-actions"><button id="dia-commentbtn" title="查看本图评论">💬</button><button id="dia-boxbtn" title="框选图中区域评论">▢ 框选评论</button></div><button id="dia-close" type="button" title="关闭" aria-label="关闭">×</button><div id="dia-hint">滚轮缩放 · 拖拽平移 · 「▢ 框选评论」框选区域 · 双击复位 · Esc 关闭</div><div id="dia-box-pop"><div id="dia-box-extract"></div><textarea placeholder="评论这块区域…"></textarea><div class="foot"><button class="cancel">取消</button><button class="ok">确定</button></div></div></div>
-<script src="https://cdn.jsdelivr.net/npm/@recogito/recogito-js@1.8.4/dist/recogito.min.js"></script>
+<div id="dia-overlay"><div id="dia-stage"></div><div id="dia-resizer"></div><div id="dia-comments"></div><div id="dia-box-rect"></div><div id="dia-actions"><button id="dia-copy-source" type="button" title="复制 Mermaid 源码" aria-label="复制 Mermaid 源码"></button><button id="dia-commentbtn" title="查看本图评论">💬</button><button id="dia-boxbtn" title="框选图中区域评论">▢ 框选评论</button></div><button id="dia-close" type="button" title="关闭" aria-label="关闭">×</button><div id="dia-hint">滚轮缩放 · 拖拽平移 · 「▢ 框选评论」框选区域 · 双击复位 · Esc 关闭</div><div id="dia-box-pop"><div id="dia-box-extract"></div><textarea placeholder="评论这块区域…"></textarea><div class="foot"><button class="cancel">取消</button><button class="ok">确定</button></div></div></div>
 <script type="module">
   const app = document.getElementById("app");
   const SIDE_KEY = "docs-viewer:side";
@@ -593,6 +624,7 @@
   const VIEW_KEY = "docs-viewer:view";
   const VIEW_ORDER = ["auto", "mobile", "desktop"];
   const DARK_QUERY = matchMedia("(prefers-color-scheme: dark)");
+  const COPY_ICON_SVG = `<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
   const mainEl = document.getElementById("main");
   const toggleBtn = document.getElementById("toggle");
   const pinPeek = document.getElementById("pin-peek");
@@ -649,6 +681,7 @@
       copiedComments: "已复制 {count} 条",
       copyFailed: "复制失败",
       copied: "已复制",
+      copyMermaidSource: "复制 Mermaid 源码",
       copySelection: "复制选中文本",
       commentSelection: "评论选中文本",
       commentPlaceholder: "写下评论…",
@@ -709,6 +742,7 @@
       copiedComments: "Copied {count}",
       copyFailed: "Copy failed",
       copied: "Copied",
+      copyMermaidSource: "Copy Mermaid source",
       copySelection: "Copy selection",
       commentSelection: "Comment on selection",
       commentPlaceholder: "Write a comment…",
@@ -866,6 +900,10 @@
     document.getElementById("find-close").title = t("close");
     document.getElementById("img-close").textContent = `✕ ${t("close")}`;
     document.getElementById("img-hint").textContent = t("imageHint");
+    const diaCopySource = document.getElementById("dia-copy-source");
+    diaCopySource.innerHTML = COPY_ICON_SVG;
+    diaCopySource.title = t("copyMermaidSource");
+    diaCopySource.setAttribute("aria-label", t("copyMermaidSource"));
     document.getElementById("dia-commentbtn").title = t("showDiagramComments");
     document.getElementById("dia-boxbtn").title = t("boxComment");
     document.getElementById("dia-boxbtn").textContent = `▢ ${t("boxComment")}`;
@@ -908,6 +946,7 @@
   let outlinePeekPinned = false;
   let syncOutlineActiveNow = () => {};
   let syncOutlinePeekPosition = () => {};
+  let dismissTransientSelectionNow = () => {};
   applyViewMode(viewMode);
   const storedSide = localStorage.getItem(SIDE_KEY);
   if (storedSide === "0") app.classList.add("no-side");
@@ -1591,6 +1630,7 @@
   const PANELS = { files: "panel-files", outline: "panel-outline", comments: "panel-comments" };
   function setSideTab(name, { persist = true, render = true } = {}) {
     const next = PANELS[name] ? name : "files";
+    if (render) dismissTransientSelectionNow();
     for (const tab of document.querySelectorAll(".stab")) tab.classList.toggle("on", tab.dataset.tab === next);
     for (const [panelName, id] of Object.entries(PANELS)) {
       document.getElementById(id).style.display = panelName === next ? "" : "none";
@@ -1607,23 +1647,60 @@
   let persistFn = null;
   let annotationCache = [];
   let boxAnnotations = [];  // mermaid 框选评论（独立于 Recogito 文本批注，合并持久化）
+  const mermaidSourceByIndex = new Map();
   setSideTab(localStorage.getItem(TAB_KEY) ?? "files", { persist: false, render: false });
   const isBoxAnno = (a) => ((a?.target?.selector) ?? []).some((s) => s?.type === "MermaidBoxSelector");
   const boxSelOf = (a) => ((a?.target?.selector) ?? []).find((s) => s?.type === "MermaidBoxSelector") ?? {};
+  function mermaidSourceForHolder(holder) {
+    const sourceIndex = Number(holder?.dataset?.sourceIndex);
+    return Number.isFinite(sourceIndex) ? (mermaidSourceByIndex.get(sourceIndex) ?? "") : "";
+  }
+  function mermaidSourceForDiagramIndex(idx) {
+    const holder = document.querySelector(`#content .mermaid[data-diagram-index="${CSS.escape(String(idx))}"]`);
+    return mermaidSourceForHolder(holder);
+  }
+  function ensureMermaidActions(holder) {
+    let actions = holder.querySelector(":scope > .mm-actions");
+    if (!actions) {
+      actions = document.createElement("div");
+      actions.className = "mm-actions";
+      holder.appendChild(actions);
+    }
+    let copyBtn = actions.querySelector(".mm-copy-source");
+    if (!copyBtn) {
+      copyBtn = document.createElement("button");
+      copyBtn.type = "button";
+      copyBtn.className = "mm-copy-source";
+      copyBtn.innerHTML = COPY_ICON_SVG;
+      copyBtn.title = t("copyMermaidSource");
+      copyBtn.setAttribute("aria-label", t("copyMermaidSource"));
+      copyBtn.addEventListener("click", async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        await copyMermaidSource(mermaidSourceForHolder(holder), copyBtn);
+      });
+      actions.appendChild(copyBtn);
+    }
+    return actions;
+  }
   function renderBoxMarkers() {
     const content = document.getElementById("content");
     if (!content) return;
     content.querySelectorAll(".mermaid").forEach((holder) => {
       const idx = Number(holder.dataset.diagramIndex);
       const n = boxAnnotations.filter((a) => hasCommentBody(a) && (boxSelOf(a).diagramIndex ?? -1) === idx).length;
-      let badge = holder.querySelector(".mm-box-badge");
+      const actions = ensureMermaidActions(holder);
+      let badge = actions.querySelector(".mm-box-badge");
+      const oldBadge = holder.querySelector(":scope > .mm-box-badge");
+      if (oldBadge && oldBadge !== badge) oldBadge.remove();
       if (n > 0) {
         if (!badge) {
           badge = document.createElement("button");
+          badge.type = "button";
           badge.className = "mm-box-badge";
           badge.title = t("showDiagramComments");
           badge.addEventListener("click", (e) => { e.stopPropagation(); const svg = holder.querySelector("svg"); if (svg) { window.__openDiagram?.(svg); window.__showDiaComments?.(idx); } });
-          holder.appendChild(badge);
+          actions.appendChild(badge);
         }
         badge.textContent = `💬 ${n}`;
       } else if (badge) { badge.remove(); }
@@ -1735,6 +1812,21 @@
     ta.select();
     document.execCommand("copy");
     ta.remove();
+  }
+
+  async function copyMermaidSource(source, button) {
+    if (!source) return;
+    await copyText(source);
+    if (!button) return;
+    const label = t("copied");
+    button.classList.add("copied");
+    button.title = label;
+    button.setAttribute("aria-label", label);
+    window.setTimeout(() => {
+      button.classList.remove("copied");
+      button.title = t("copyMermaidSource");
+      button.setAttribute("aria-label", t("copyMermaidSource"));
+    }, 1200);
   }
 
   // 实时刷新文件树里某文档的批注数 badge（加载时的 /api/tree 只是快照，
@@ -2019,17 +2111,50 @@
     setDocNameLabel(docName);
     document.title = docName;
 
-    const [{ unified }, remarkParse, remarkGfm, remarkRehype, rehypeStringify, mermaidMod, recogitoMod] = await Promise.all([
+    const [{ unified }, remarkParse, remarkGfm, remarkRehype, rehypeStringify, mermaidMod] = await Promise.all([
       import("https://esm.sh/unified@11"),
       import("https://esm.sh/remark-parse@11"),
       import("https://esm.sh/remark-gfm@4"),
       import("https://esm.sh/remark-rehype@11"),
       import("https://esm.sh/rehype-stringify@10"),
       import("https://esm.sh/mermaid@11"),
-      import("https://esm.sh/@recogito/recogito-js@1.8.4"),
     ]);
     const mermaid = mermaidMod.default;
-    const initRecogito = window.Recogito?.init ?? recogitoMod.init ?? recogitoMod.default?.init ?? recogitoMod.Recogito?.init;
+    async function loadRecogitoInit() {
+      return typeof window.Recogito?.init === "function" ? window.Recogito.init : null;
+    }
+    const initRecogito = await loadRecogitoInit();
+    function createNativeAnnotationAdapter() {
+      let annotations = [];
+      return {
+        nativeFallback: true,
+        getAnnotations() {
+          return [...annotations];
+        },
+        async setAnnotations(next = []) {
+          annotations = Array.isArray(next) ? [...next] : [];
+        },
+        on() {},
+        selectAnnotation() {},
+      };
+    }
+    function createTextAnnotationEngine(options) {
+      if (typeof initRecogito !== "function") return createNativeAnnotationAdapter();
+      try {
+        const engine = initRecogito(options);
+        if (engine
+          && typeof engine.getAnnotations === "function"
+          && typeof engine.setAnnotations === "function"
+          && typeof engine.on === "function"
+          && typeof engine.selectAnnotation === "function") {
+          return engine;
+        }
+        console.warn("Recogito init returned an incomplete adapter; using native text annotations");
+      } catch (err) {
+        console.warn("Recogito init failed; using native text annotations", err);
+      }
+      return createNativeAnnotationAdapter();
+    }
 
     const md = await (await fetch(`/raw/${encodeURI(docName)}`)).text();
     contentEl.lang = inferMarkdownLang(md);
@@ -2185,11 +2310,17 @@
     }
 
     restoreDocScrollSoon();
+    mermaidSourceByIndex.clear();
+    let mermaidSourceIndex = 0;
     for (const block of contentEl.querySelectorAll("code.language-mermaid")) {
       const pre = block.closest("pre");
+      const source = block.textContent.replace(/\s+$/g, "");
       const holder = document.createElement("pre");
       holder.className = "mermaid";
-      holder.textContent = block.textContent;
+      holder.dataset.sourceIndex = String(mermaidSourceIndex);
+      holder.textContent = source;
+      mermaidSourceByIndex.set(mermaidSourceIndex, source);
+      mermaidSourceIndex += 1;
       pre.replaceWith(holder);
     }
     mermaid.initialize({ startOnLoad: false, theme: resolvedTheme() === "dark" ? "dark" : "default", securityLevel: "loose" });
@@ -2198,7 +2329,9 @@
 
     const diaOverlay = document.getElementById("dia-overlay");
     const diaStage = document.getElementById("dia-stage");
-    const dia = { svg: null, vb0: null, vb: null, drag: null, diagramIndex: -1, boxMode: false };
+    const diaCopySourceBtn = document.getElementById("dia-copy-source");
+    const dia = { svg: null, vb0: null, vb: null, drag: null, diagramIndex: -1, boxMode: false, source: "" };
+    diaCopySourceBtn.disabled = true;
     const diaPointers = new Map();
     let diaPinchDist = null;
     let diaBoxStart = null;
@@ -2259,7 +2392,10 @@
         dia.vb0 = { x: box.x, y: box.y, w: box.width, h: box.height };
       }
       dia.svg = clone;
-      dia.diagramIndex = Number(svg.closest(".mermaid")?.dataset.diagramIndex ?? -1);
+      const holder = svg.closest(".mermaid");
+      dia.diagramIndex = Number(holder?.dataset.diagramIndex ?? -1);
+      dia.source = mermaidSourceForHolder(holder);
+      diaCopySourceBtn.disabled = !dia.source;
       diaReset();
       diaOverlay.classList.add("show");
       syncDiaCommentsVisibility();
@@ -2275,7 +2411,9 @@
       diaOverlay.classList.remove("has-comments");
       diaStage.innerHTML = "";
       dia.svg = null;
+      dia.source = "";
       dia.drag = null;
+      diaCopySourceBtn.disabled = true;
       diaPointers.clear();
       diaPinchDist = null;
     }
@@ -2327,6 +2465,11 @@
     window.__showDiaComments = showDiaComments;
     document.getElementById("dia-commentbtn").addEventListener("click", () => {
       if (dia.diagramIndex >= 0) showDiaComments(dia.diagramIndex);
+    });
+    diaCopySourceBtn.addEventListener("click", async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      await copyMermaidSource(dia.source || mermaidSourceForDiagramIndex(dia.diagramIndex), diaCopySourceBtn);
     });
     // 评论栏拖动 resize（改 --dia-cmt-w，左图右评论双栏）
     const diaResizer = document.getElementById("dia-resizer");
@@ -2401,9 +2544,10 @@
     }
     window.__closeDiagram = closeDiagram;
 
-    const r = initRecogito({ content: contentEl, disableEditor: true });
+    const r = createTextAnnotationEngine({ content: contentEl, disableEditor: true });
     recogito = r;
     window.__recogito = r;
+    window.__docsViewerTextAnnotations = r.nativeFallback ? "native" : "recogito";
 
     const pop = document.getElementById("anno-pop");
     const popTa = pop.querySelector("textarea");
@@ -2671,6 +2815,13 @@
       contentEl.normalize();
     }
 
+    function clearRecogitoAnnotationSpans() {
+      for (const span of contentEl.querySelectorAll(".r6o-annotation:not(.manual-annotation)")) {
+        span.replaceWith(...span.childNodes);
+      }
+      contentEl.normalize();
+    }
+
     function paintManualAnnotationRange(range, annotation) {
       if (!range || range.collapsed || !annotation?.id) return 0;
       const parts = [];
@@ -2707,6 +2858,7 @@
 
     function renderManualTextAnnotations(annotations) {
       clearManualAnnotationSpans();
+      clearRecogitoAnnotationSpans();
       for (const annotation of annotations.filter((a) => !isBoxAnno(a) && hasCommentBody(a))) {
         if (!annotation?.id) continue;
         paintManualAnnotationRange(rangeFromSelectionPayload(annotation), annotation);
@@ -2726,6 +2878,7 @@
     let applyingTextAnnotations = false;
     async function setTextAnnotations(annotations) {
       clearManualAnnotationSpans();
+      clearRecogitoAnnotationSpans();
       applyingTextAnnotations = true;
       try {
         await r.setAnnotations(annotations.filter((a) => !isBoxAnno(a) && hasCommentBody(a)));
@@ -2734,6 +2887,7 @@
       } finally {
         applyingTextAnnotations = false;
       }
+      clearRecogitoAnnotationSpans();
       renderManualTextAnnotations(annotations);
       scheduleManualTextAnnotationPass(annotations);
     }
@@ -2771,6 +2925,7 @@
       if (!hadTransientSelection) return;
       clearSelectionState();
     }
+    dismissTransientSelectionNow = () => dismissSelectionTools({ suppress: false, suppressMs: 0 });
     function closePop() {
       pop.style.display = "none";
       popTarget = null;
@@ -3089,6 +3244,12 @@
     contentEl.querySelectorAll(".mermaid").forEach((holder, idx) => {
       holder.style.position = "relative";
       holder.dataset.diagramIndex = String(idx);  // 原图不放框选按钮，保持干净；框选在放大态做
+      if (holder.dataset.sourceIndex === undefined) {
+        holder.dataset.sourceIndex = String(mermaidSourceIndex);
+        mermaidSourceByIndex.set(mermaidSourceIndex, holder.textContent.replace(/\s+$/g, ""));
+        mermaidSourceIndex += 1;
+      }
+      ensureMermaidActions(holder);
     });
     renderBoxMarkers();
 
