@@ -104,6 +104,10 @@ After creating a document, validate that it appears in `/api/tree` and open it a
 http://localhost:<port>/d/<relative-path>.md
 ```
 
+### Document style preferences
+
+When creating or editing docs, especially while addressing comments, prefer Mermaid diagrams for content that describes flows, steps, state transitions, routing, scheduling, or system interactions. Keep prose for conclusions and tradeoffs, but use `mermaid` blocks to make process-oriented parts inspectable in the viewer.
+
 ## Annotation Model
 
 The viewer stores annotations inside the markdown file in a trailing HTML comment block. Treat those blocks as intentional repo content:
@@ -114,6 +118,55 @@ The viewer stores annotations inside the markdown file in a trailing HTML commen
 - Concurrent writes use the annotation block `updatedAt` baseline; a stale write returns `409`.
 
 Avoid sidecar annotation files unless a repo has deliberately forked the viewer.
+
+### Reading annotation blocks
+
+When an agent needs to inspect comments from disk, read the trailing block:
+
+```text
+<!-- docs-viewer:annotations
+{ ...json... }
+-->
+```
+
+This is the same export contract as the viewer's Comments tab copy button: quote/excerpt plus comment body, formatted for Markdown. The UI copy button is the human-facing shortcut; the following parsing rules are the disk/API version agents should use. The JSON is W3C Web Annotation shaped. Do not look for top-level `quote`, `anchor`, or `text` fields first. The selected text is stored under `target.selector`:
+
+- Text comments: `target.selector[] | type == "TextQuoteSelector" | exact`
+- Text offsets: `target.selector[] | type == "TextPositionSelector" | start/end`
+- Mermaid box comments: `target.selector[] | type == "MermaidBoxSelector" | extractedText`
+- Comment body: join `body[].value` where `body[].purpose == "commenting"` or where `value` is present
+
+Use this helper shape when dumping annotations:
+
+```python
+import json, re
+
+def selectors_of(a):
+    sel = (a.get("target") or {}).get("selector", [])
+    return sel if isinstance(sel, list) else [sel]
+
+def quote_of(a):
+    for s in selectors_of(a):
+        if s.get("type") == "TextQuoteSelector":
+            return s.get("exact", "")
+        if s.get("type") == "MermaidBoxSelector":
+            return s.get("extractedText", "")
+    return ""
+
+def body_of(a):
+    return "\n".join(
+        b.get("value", "")
+        for b in (a.get("body") or [])
+        if isinstance(b, dict) and b.get("value")
+    )
+
+text = open("path/to/doc.md", encoding="utf-8").read()
+match = re.search(r"<!-- docs-viewer:annotations\n(.*?)\n-->\s*$", text, re.S)
+data = json.loads(match.group(1)) if match else {"annotations": []}
+for annotation in data.get("annotations", []):
+    print("QUOTE:", quote_of(annotation) or "(no anchor text)")
+    print("COMMENT:", body_of(annotation))
+```
 
 ### Resolving review comments
 
